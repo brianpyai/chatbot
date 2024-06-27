@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            max-height: 80vh;
+        }
+        #background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #000;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+        #score-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+        #gamepad {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            z-index: 2;
+        }
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(221, 221, 221, 0.7);
+            border: none;
+            border-radius: 50%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+  <video autoplay muted loop id="background-video">
+            <source src="videos.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div id="score-display">Score: 0</div>
+        <canvas id="tetris"></canvas>
+    </div>
+    <div id="gamepad">
+        <button class="control-btn" id="left">←</button>
+        <button class="control-btn" id="rotate">↻</button>
+        <button class="control-btn" id="right">→</button>
+        <button class="control-btn" id="down">↓</button>
+    </div>
+    <script>
+        const ROWS = 20;
+        const COLS = 10;
+        const BLOCK_SIZE = 30;
+
+        const canvas = document.getElementById('tetris');
+        const ctx = canvas.getContext('2d');
+        canvas.width = COLS * BLOCK_SIZE;
+        canvas.height = ROWS * BLOCK_SIZE;
+
+        const scoreDisplay = document.getElementById('score-display');
+
+        const shapes = [
+            [[1,1,1,1]],
+            [[1,1],[1,1]],
+            [[1,1,1],[0,1,0]],
+            [[1,1,1],[1,0,0]],
+            [[1,1,1],[0,0,1]],
+            [[1,1,0],[0,1,1]],
+            [[0,1,1],[1,1,0]]
+        ];
+
+        let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+        let currentPiece = null;
+        let currentX = 0;
+        let currentY = 0;
+        let score = 0;
+
+        function updateScore(points) {
+            score += points;
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        function newPiece() {
+            const shapeIndex = Math.floor(Math.random() * shapes.length);
+            currentPiece = shapes[shapeIndex];
+            currentX = Math.floor(COLS / 2) - Math.floor(currentPiece[0].length / 2);
+            currentY = 0;
+
+            if (!isValidMove(0, 0)) {
+                alert("Game Over! Your score: " + score);
+                board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                score = 0;
+                updateScore(0);
+            }
+        }
+
+        function isValidMove(moveX, moveY, piece = currentPiece) {
+            for (let y = 0; y < piece.length; y++) {
+                for (let x = 0; x < piece[y].length; x++) {
+                    if (piece[y][x]) {
+                        const newX = currentX + x + moveX;
+                        const newY = currentY + y + moveY;
+                        if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && board[newY][newX])) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function merge() {
+            for (let y = 0; y < currentPiece.length; y++) {
+                for (let x = 0; x < currentPiece[y].length; x++) {
+                    if (currentPiece[y][x]) {
+                        board[currentY + y][currentX + x] = 1;
+                    }
+                }
+            }
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            for (let y = ROWS - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(COLS).fill(0));
+                    linesCleared++;
+                }
+            }
+            if (linesCleared > 0) {
+                updateScore(linesCleared * 100); // 100 points per line
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw board
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (board[y][x]) {
+                        ctx.fillStyle = 'blue';
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        ctx.strokeStyle = 'white';
+                        ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                }
+            }
+
+            // Draw current piece
+            if (currentPiece) {
+                ctx.fillStyle = 'red';
+                for (let y = 0; y < currentPiece.length; y++) {
+                    for (let x = 0; x < currentPiece[y].length; x++) {
+                        if (currentPiece[y][x]) {
+                            ctx.fillRect((currentX + x) * BLOCK_SIZE, (currentY + y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                            ctx.strokeStyle = 'white';
+                            ctx.strokeRect((currentX + x) * BLOCK_SIZE, (currentY + y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        }
+                    }
+                }
+            }
+        }
+
+        function gameLoop() {
+            if (!currentPiece) {
+                newPiece();
+            }
+
+            if (isValidMove(0, 1)) {
+                currentY++;
+            } else {
+                merge();
+                clearLines();
+                newPiece();
+            }
+
+            draw();
+        }
+
+        function moveLeft() {
+            if (isValidMove(-1, 0)) currentX--;
+            draw();
+        }
+
+        function moveRight() {
+            if (isValidMove(1, 0)) currentX++;
+            draw();
+        }
+
+        function moveDown() {
+            if (isValidMove(0, 1)) {
+                currentY++;
+                updateScore(1); // 1 point for moving down
+            }
+            draw();
+        }
+
+        function rotate() {
+            const rotated = currentPiece[0].map((_, i) => currentPiece.map(row => row[i]).reverse());
+            if (isValidMove(0, 0, rotated)) currentPiece = rotated;
+            draw();
+        }
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowLeft': moveLeft(); break;
+                case 'ArrowRight': moveRight(); break;
+                case 'ArrowDown': moveDown(); break;
+                case 'ArrowUp': rotate(); break;
+            }
+        });
+
+        // On-screen controls
+        document.getElementById('left').addEventListener('click', moveLeft);
+        document.getElementById('right').addEventListener('click', moveRight);
+        document.getElementById('down').addEventListener('click', moveDown);
+        document.getElementById('rotate').addEventListener('click', rotate);
+
+        // Touch events for mobile
+        document.getElementById('left').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            moveLeft();
+        });
+        document.getElementById('right').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            moveRight();
+        });
+        document.getElementById('down').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            moveDown();
+        });
+        document.getElementById('rotate').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            rotate();
+        });
+
+        setInterval(gameLoop, 500);
+    </script>
+</body>
+</html>
