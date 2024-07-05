@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Bubble Shooter</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+        }
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #canvas, #game {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #game {
+            z-index: 10;
+        }
+        #canvas {
+            z-index: 0;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 24px;
+            z-index: 20;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three/build/three.min.js"></script>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+        <canvas id="game"></canvas>
+    </div>
+    <div id="score">Score: 0</div>
+    
+    <script>
+        // 3D Background
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('canvas'), alpha: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0); // 設置透明背景
+
+        // 創建多個3D氣泡球
+        const bubbles3D = [];
+        for (let i = 0; i < 20; i++) {
+            const geometry = new THREE.SphereGeometry(Math.random() * 0.5 + 0.1, 32, 32);
+            const material = new THREE.MeshPhysicalMaterial({
+                color: Math.random() * 0xffffff,
+                transparent: true,
+                opacity: 0.7,
+                metalness: 0.2,
+                roughness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            });
+            const bubble = new THREE.Mesh(geometry, material);
+            bubble.position.set(
+                Math.random() * 10 - 5,
+                Math.random() * 10 - 5,
+                Math.random() * 10 - 5
+            );
+            scene.add(bubble);
+            bubbles3D.push(bubble);
+        }
+
+        // 添加更明亮的光源
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+
+        const pointLight1 = new THREE.PointLight(0xffffff, 1, 100);
+        pointLight1.position.set(10, 10, 10);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xffffff, 1, 100);
+        pointLight2.position.set(-10, -10, -10);
+        scene.add(pointLight2);
+
+        camera.position.z = 5;
+
+        // 3D動畫循環
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            bubbles3D.forEach(bubble => {
+                bubble.rotation.x += 0.01;
+                bubble.rotation.y += 0.01;
+                bubble.position.y += Math.sin(Date.now() * 0.001 + bubble.position.x) * 0.01;
+            });
+            renderer.render(scene, camera);
+        }
+        animate3D();
+
+        // 2D Game Logic (保持不變)
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        const BUBBLE_RADIUS = 20;
+        const ROWS = 8;
+        const COLS = 10;
+        const COLORS = ['rgba(231, 76, 60, 1)', 'rgba(52, 152, 219, 1)', 'rgba(46, 204, 113, 0.7)', 'rgba(241, 196, 15, 1)', 'rgba(155, 89, 182, 1)'];
+
+        let bubbles = [];
+        let shooter = { x: 0, y: 0, angle: 0, color: '' };
+        let score = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.9;
+            shooter.x = canvas.width / 2;
+            shooter.y = canvas.height - BUBBLE_RADIUS;
+        }
+
+        function initializeBubbles() {
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    if (Math.random() < 0.7) {
+                        bubbles.push({
+                            x: col * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS,
+                            y: row * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS,
+                            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                            row: row,
+                            col: col
+                        });
+                    }
+                }
+            }
+        }
+
+        function drawBubble(x, y, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, BUBBLE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(52, 73, 94, 0.5)';
+            ctx.stroke();
+        }
+
+        function drawShooter() {
+            drawBubble(shooter.x, shooter.y, shooter.color);
+            
+            ctx.beginPath();
+            ctx.moveTo(shooter.x, shooter.y);
+            ctx.lineTo(shooter.x + Math.cos(shooter.angle) * BUBBLE_RADIUS * 2, 
+                       shooter.y + Math.sin(shooter.angle) * BUBBLE_RADIUS * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.stroke();
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            bubbles.forEach(bubble => drawBubble(bubble.x, bubble.y, bubble.color));
+            drawShooter();
+        }
+
+        function updateScore() {
+            scoreElement.textContent = `Score: ${score}`;
+        }
+
+        function shootBubble() {
+            const newBubble = {
+                x: shooter.x,
+                y: shooter.y,
+                color: shooter.color,
+                dx: Math.cos(shooter.angle) * 5,
+                dy: Math.sin(shooter.angle) * 5
+            };
+
+            const animateBubble = () => {
+                newBubble.x += newBubble.dx;
+                newBubble.y += newBubble.dy;
+
+                if (newBubble.x < BUBBLE_RADIUS || newBubble.x > canvas.width - BUBBLE_RADIUS) {
+                    newBubble.dx *= -1;
+                }
+
+                if (newBubble.y < BUBBLE_RADIUS) {
+                    snapBubbleToGrid(newBubble);
+                    checkMatches(newBubble);
+                    resetShooter();
+                    return;
+                }
+
+                for (const bubble of bubbles) {
+                    if (distance(newBubble, bubble) < BUBBLE_RADIUS * 2) {
+                        snapBubbleToGrid(newBubble);
+                        checkMatches(newBubble);
+                        resetShooter();
+                        return;
+                    }
+                }
+
+                drawGame();
+                drawBubble(newBubble.x, newBubble.y, newBubble.color);
+                requestAnimationFrame(animateBubble);
+            };
+
+            animateBubble();
+        }
+
+        function snapBubbleToGrid(bubble) {
+            const row = Math.round((bubble.y - BUBBLE_RADIUS) / (BUBBLE_RADIUS * 2));
+            const col = Math.round((bubble.x - BUBBLE_RADIUS) / (BUBBLE_RADIUS * 2));
+            bubble.x = col * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
+            bubble.y = row * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
+            bubble.row = row;
+            bubble.col = col;
+            bubbles.push(bubble);
+        }
+
+        function checkMatches(bubble) {
+            const matches = findMatches(bubble);
+            if (matches.length >= 3) {
+                matches.forEach(match => {
+                    const index = bubbles.indexOf(match);
+                    if (index > -1) bubbles.splice(index, 1);
+                });
+                score += matches.length * 10;
+                updateScore();
+            }
+        }
+
+        function findMatches(bubble, matched = new Set()) {
+            matched.add(bubble);
+            const neighbors = getNeighbors(bubble);
+            for (const neighbor of neighbors) {
+                if (neighbor.color === bubble.color && !matched.has(neighbor)) {
+                    findMatches(neighbor, matched);
+                }
+            }
+            return Array.from(matched);
+        }
+
+        function getNeighbors(bubble) {
+            return bubbles.filter(b => 
+                (Math.abs(b.row - bubble.row) <= 1 && Math.abs(b.col - bubble.col) <= 1) &&
+                !(b.row === bubble.row && b.col === bubble.col)
+            );
+        }
+
+        function resetShooter() {
+            shooter.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        }
+
+        function distance(a, b) {
+            return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+        }
+
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            shooter.angle = Math.atan2(mouseY - shooter.y, mouseX - shooter.x);
+            drawGame();
+        }
+
+        function handleClick() {
+            shootBubble();
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            const touchY = e.touches[0].clientY - rect.top;
+            shooter.angle = Math.atan2(touchY - shooter.y, touchX - shooter.x);
+            drawGame();
+        }
+
+        function handleTouchEnd() {
+            shootBubble();
+        }
+
+        function startGame() {
+            resizeCanvas();
+            initializeBubbles();
+            resetShooter();
+            drawGame();
+            updateScore();
+
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('click', handleClick);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', handleTouchEnd);
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                // 調整3D背景大小
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
