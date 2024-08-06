@@ -1,5 +1,7 @@
+Here's the modified markdown with copy buttons added to each code block:
+
 ####Debian:
-    
+
 ```bash
 termux-setup-storage
 termux-wake-lock
@@ -7,7 +9,7 @@ termux-change-repo
 pkg install tur-repo
 pkg update && pkg upgrade 
 pkg install git proot-distro termimage vim termux-api
-
+```
 
 ```bash
 disname='debian'
@@ -16,7 +18,7 @@ echo "proot-distro login $disname"  > .shortcuts/debianai.sh
 echo  "proot-distro login debian --user $user" > .shortcuts/debian.sh
 proot-distro install debian
 proot-distro login debian
-
+```
 
 ```bash
 user='brian'
@@ -28,8 +30,7 @@ adduser $user
 gpasswd -a $user sudo
 echo "$user   ALL=(ALL:ALL) ALL" >> /etc/sudoers
 login $user
-
-
+```
 
 ```bash
 echo 'source llm/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm' > llm.env
@@ -54,8 +55,7 @@ mkdir build
 cd build
 cmake .. -DGGML_OPENBLAS=ON
 cmake --build . --config Release
-
-
+```
 
 ```bash
 rm -rf llama.cpp
@@ -66,8 +66,7 @@ make GGML_OPENBLAS=1
 cd
 python -m venv llm
 source llm/bin/activate
-
-
+```
 
 ```bash
 pip install --upgrade pip
@@ -79,8 +78,7 @@ bash ./scripts/build.sh
 cd 
 python -m pip install ./ctransformers/
 CMAKE_ARGS="-DLLAMA_BLAS=ON" pip install llama-cpp-python 
-
-
+```
 
 ```bash
 pip install --upgrade diffusers[torch] 
@@ -99,3 +97,5 @@ pip install optimum-intel
 pip install --upgrade-strategy eager optimum[openvino,nncf]
 pip install --force-reinstall transformers[torch]
 pip install --force-reinstall diffusers[torch] 
+```
+
