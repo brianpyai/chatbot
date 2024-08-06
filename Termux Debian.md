@@ -69,5 +69,3 @@ pip install doc2text pypandoc pandoc gradio
 ```
 
 This setup provides a Debian environment within Termux, with Python and various AI-related libraries installed. The environment is ready for development and running AI models, including Llama.
-
-Would you like me to explain any specific part of this setup or provide more information about any of the installed packages?
