@@ -1,6 +1,14 @@
-Here's the modified markdown with copy buttons added to each code block:
+###Install Debian or Ubuntu on Termux :
 
-####Debian:
+### Download and install Termux and Termux Widget,Termux API add the Termux-Widget to your Home:
+
+https://f-droid.org/en/packages/com.termux/
+https://f-droid.org/en/packages/com.termux.widget/
+https://f-droid.org/packages/com.termux.api/
+
+
+
+#### Open Termux :
 
 ```bash
 termux-setup-storage
@@ -8,9 +16,12 @@ termux-wake-lock
 termux-change-repo
 pkg install tur-repo
 pkg update && pkg upgrade 
-pkg install git proot-distro termimage vim termux-api
+pkg install git proot-distro vim termux-api
 ```
 
+
+#### After installed proot-distro:
+    
 ```bash
 disname='debian'
 user='brian'
@@ -20,6 +31,9 @@ proot-distro install debian
 proot-distro login debian
 ```
 
+
+#### After login Debian :
+    
 ```bash
 user='brian'
 apt update && apt upgrade
@@ -32,6 +46,8 @@ echo "$user   ALL=(ALL:ALL) ALL" >> /etc/sudoers
 login $user
 ```
 
+#### After login as user:
+    
 ```bash
 echo 'source llm/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm' > llm.env
 sudo locale-gen zh_CN.UTF-8
@@ -49,14 +65,9 @@ sudo apt install libopenblas-dev libopenblas-openmp-dev libopenblas0 libopenblas
 sudo apt install opencl-c-headers opencl-clhpp-headers libasl-dev libasl0 libclblast-dev libclc-13 
 sudo apt install pandoc git-lfs
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-git clone --recursive https://github.com/leejet/stable-diffusion.cpp
-cd stable-diffusion.cpp
-mkdir build
-cd build
-cmake .. -DGGML_OPENBLAS=ON
-cmake --build . --config Release
 ```
 
+#### Build Llama with OPENBLAS:
 ```bash
 rm -rf llama.cpp
 git clone https://github.com/ggerganov/llama.cpp
@@ -68,34 +79,26 @@ python -m venv llm
 source llm/bin/activate
 ```
 
+#### Install llama-cpp-python :
+
 ```bash
 pip install --upgrade pip
-pip uninstall ctransformers llama-cpp-python
-rm -rf ctransformers
-git clone --recurse-submodules https://github.com/marella/ctransformers
-cd ctransformers 
-bash ./scripts/build.sh
-cd 
 python -m pip install ./ctransformers/
 CMAKE_ARGS="-DLLAMA_BLAS=ON" pip install llama-cpp-python 
 ```
 
+#### Install packages:
 ```bash
 pip install --upgrade diffusers[torch] 
 pip install --upgrade  accelerate peft openvino optimum onnx onnxruntime nncf
 pip install opencv-python fastapi uvicorn flask
 pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas 
-pip install --upgrade pip
 pip install fast-sentence-transformers
 pip install langchain
 pip install wikipedia  unstructured pypdf pdf2image pdfminer chromadb qdrant-client lark momento annoy
 pip install doc2text pypandoc pandoc
 pip install opencv-python fastapi uvicorn flask
 pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas gradio 
-pip install --upgrade-strategy eager install optimum[onnxruntime]
-pip install optimum-intel
-pip install --upgrade-strategy eager optimum[openvino,nncf]
-pip install --force-reinstall transformers[torch]
-pip install --force-reinstall diffusers[torch] 
+
 ```
 
