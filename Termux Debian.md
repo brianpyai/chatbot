@@ -2,7 +2,7 @@ Here's the modified markdown with copy buttons added to each code block:
 
 ####Debian:
 
-```
+```bash
 termux-setup-storage
 termux-wake-lock
 termux-change-repo
