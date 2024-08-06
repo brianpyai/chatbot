@@ -1,6 +1,6 @@
 ####Debian:
     
-```bash
+######
 termux-setup-storage
 termux-wake-lock
 termux-change-repo
