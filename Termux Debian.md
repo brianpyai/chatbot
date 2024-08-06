@@ -1,15 +1,7 @@
-###Install Debian or Ubuntu on Termux :
 
-### Download and install Termux and Termux Widget,Termux API add the Termux-Widget to your Home:
+1. Install Termux, Termux:Widget, and Termux:API from F-Droid.
 
-https://f-droid.org/en/packages/com.termux/
-https://f-droid.org/en/packages/com.termux.widget/
-https://f-droid.org/packages/com.termux.api/
-
-
-
-#### Open Termux :
-
+2. Open Termux and run initial setup commands:
 ```bash
 termux-setup-storage
 termux-wake-lock
@@ -19,9 +11,7 @@ pkg update && pkg upgrade
 pkg install git proot-distro vim termux-api
 ```
 
-
-#### After installed proot-distro:
-    
+3. Install and set up Debian using proot-distro:
 ```bash
 disname='debian'
 user='brian'
@@ -31,9 +21,7 @@ proot-distro install debian
 proot-distro login debian
 ```
 
-
-#### After login Debian :
-    
+4. After logging into Debian, set up the environment:
 ```bash
 user='brian'
 apt update && apt upgrade
@@ -46,30 +34,19 @@ echo "$user   ALL=(ALL:ALL) ALL" >> /etc/sudoers
 login $user
 ```
 
-#### After login as user:
-    
+5. Install necessary packages and set up Python environment:
 ```bash
-echo 'source llm/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm' > llm.env
-sudo locale-gen zh_CN.UTF-8
 sudo apt update && apt upgrade
-sudo apt install python3-full git curl vim wget
-sudo apt install python-is-python3
-sudo apt install python3-pip
-sudo apt install  clang wget git cmake
-sudo apt install  opencl-headers
-sudo apt install  libopenblas-dev libopenblas0 libopenblas64-0 libblis-openmp-dev
+sudo apt install python3-full git curl vim wget python-is-python3 python3-pip
+sudo apt install clang cmake opencl-headers libopenblas-dev
 sudo apt install python3-torch python3-torchaudio python3-torchtext python3-torchvision
 sudo apt install libideep-dev libtorch-dev libonnx1
-sudo apt install pandoc build-essential
-sudo apt install libopenblas-dev libopenblas-openmp-dev libopenblas0 libopenblas64-0-openmp libopenblas64-dev libopenblas64-openmp-dev 
-sudo apt install opencl-c-headers opencl-clhpp-headers libasl-dev libasl0 libclblast-dev libclc-13 
-sudo apt install pandoc git-lfs
+sudo apt install pandoc build-essential git-lfs
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-#### Build Llama with OPENBLAS:
+6. Build Llama with OPENBLAS:
 ```bash
-rm -rf llama.cpp
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
 mkdir build 
@@ -79,26 +56,18 @@ python -m venv llm
 source llm/bin/activate
 ```
 
-#### Install llama-cpp-python :
-
+7. Install llama-cpp-python and other Python packages:
 ```bash
 pip install --upgrade pip
-python -m pip install ./ctransformers/
 CMAKE_ARGS="-DLLAMA_BLAS=ON" pip install llama-cpp-python 
-```
-
-#### Install packages:
-```bash
-pip install --upgrade diffusers[torch] 
-pip install --upgrade  accelerate peft openvino optimum onnx onnxruntime nncf
+pip install --upgrade diffusers[torch] accelerate peft openvino optimum onnx onnxruntime nncf
 pip install opencv-python fastapi uvicorn flask
 pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas 
-pip install fast-sentence-transformers
-pip install langchain
-pip install wikipedia  unstructured pypdf pdf2image pdfminer chromadb qdrant-client lark momento annoy
-pip install doc2text pypandoc pandoc
-pip install opencv-python fastapi uvicorn flask
-pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas gradio 
-
+pip install fast-sentence-transformers langchain
+pip install wikipedia unstructured pypdf pdf2image pdfminer chromadb qdrant-client lark momento annoy
+pip install doc2text pypandoc pandoc gradio
 ```
 
+This setup provides a Debian environment within Termux, with Python and various AI-related libraries installed. The environment is ready for development and running AI models, including Llama.
+
+Would you like me to explain any specific part of this setup or provide more information about any of the installed packages?
