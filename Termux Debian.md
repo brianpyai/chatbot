@@ -43,6 +43,15 @@ sudo apt install python3-torch python3-torchaudio python3-torchtext python3-torc
 sudo apt install libideep-dev libtorch-dev libonnx1
 sudo apt install pandoc build-essential git-lfs
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+git clone https://github.com/RustPython/RustPython
+cd RustPython
+cargo install --path . --features ssl
+rustpython --install-pip
+cd
+echo "source rustpy/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm" > rustpy.env
+rustpython -m venv rustpy
+source rustpy.env
+
 ```
 
 6. Build Llama with OPENBLAS:
@@ -53,6 +62,7 @@ mkdir build
 make GGML_OPENBLAS=1
 cd
 python -m venv llm
+echo "source llm/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm" > llm.env
 source llm/bin/activate
 ```
 
@@ -69,3 +79,4 @@ pip install doc2text pypandoc pandoc gradio
 ```
 
 This setup provides a Debian environment within Termux, with Python and various AI-related libraries installed. The environment is ready for development and running AI models, including Llama.
+
