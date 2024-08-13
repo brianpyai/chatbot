@@ -179,9 +179,10 @@ class Text:
     LightCyan = lambda s: "\033[96m%s\033[0m" % s
     White = lambda s: "\033[97m%s\033[0m" % s
 
+from sklearn.metrics.pairwise import cosine_similarity
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+
 
 
 def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
@@ -189,7 +190,7 @@ def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
     title = lines[0]
     content = lines[1] if len(lines) > 1 else ''
     title_tokens = embedding_model.encode(title)
-    #content_tokens = embedding_model.encode(content)
+    content_tokens = embedding_model.encode(content)
     
 
     #if len(text )>2000:top_n=min(40,int(len(text)/200))
@@ -197,9 +198,10 @@ def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
     
 
     title_words = embedding_model.decode(title_tokens).split()
-    content_words = split_into_sentences(content)
+    #content_words=split_into_sentences(content)
+    content_words=embedding_model.decode(content_tokens).split() #split_into_sentences(content)
     top_n=min ( 100 ,max(20,int( len(content_words)/33)+len(title_words) ) )
-    #embedding_model.decode(content_tokens).split()
+    
 
     word_freq = {}
     for word in title_words:
@@ -217,36 +219,78 @@ def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
         word_scores.append((word, score))
 
 
-    word_scores.sort(key=lambda x: x[1], reverse=True)
-    return [word for word, score in word_scores[:top_n]]
+    #word_scores.sort(key=lambda x: x[1], reverse=True)
+    #l=int(len (word_scores)*8/10)
+    return [word for word, score in word_scores]
 
 
-def build_relationship_tree(keywords, embeddings, threshold=0.55):
-    tree = {}
+def build_relationship_tree(keywords, embeddings):
+    tree = {keyword: [] for keyword in keywords}
+    all_similarities = []
+    
+    # 計算所有關鍵詞對之間的相似度
     for i, keyword1 in enumerate(keywords):
-        tree[keyword1] = []
-        for j, keyword2 in enumerate(keywords[i+1:]):
+        for j, keyword2 in enumerate(keywords[i+1:], start=i+1):
             similarity = cosine_similarity([embeddings(keyword1)], [embeddings(keyword2)])[0][0]
-            if similarity > threshold:
+            all_similarities.append((keyword1, keyword2, similarity))
+    
+    # 計算相似度閾值
+    all_similarities.sort(key=lambda x: x[2], reverse=True)
+    num_relations = len(all_similarities)
+    num_to_keep = min(num_relations, min(80, max(int(num_relations / 50), 10)))
+    
+    if num_to_keep > 0:
+        similarity_threshold = all_similarities[num_to_keep-1][2]
+    else:
+        similarity_threshold = 0  # 如果沒有關係，設置閾值為0
+    
+    # 根據閾值添加關係，保持原始順序
+    for i, keyword1 in enumerate(keywords):
+        for j, keyword2 in enumerate(keywords[i+1:], start=i+1):
+            similarity = cosine_similarity([embeddings(keyword1)], [embeddings(keyword2)])[0][0]
+            if similarity >= similarity_threshold:
                 tree[keyword1].append((keyword2, similarity))
-        tree[keyword1].sort(key=lambda x: x[1], reverse=True)
+                tree[keyword2].append((keyword1, similarity))
+    
+    # 對每個關鍵詞的關係列表進行排序
+    for keyword in tree:
+        tree[keyword].sort(key=lambda x: x[1], reverse=True)
+    
     return tree
-
-def print_tree(tree, root, level=0, max_children=4):
-    prefix = "  " * level
+def print_tree(tree, root_keyword, max_depth=4):
     result = ""
-    #result += f"{prefix}{root}\n"
-    if root in tree:
-        for i, (child, similarity) in enumerate(tree[root][:max_children]):
-            result += f"{prefix}├─ {child} ({similarity:.2f})\n"
-            if i < len(tree[root]) - 1:
-                result += print_tree(tree, child, level + 1, max_children)
-            else:
-                result += print_tree(tree, child, level + 1, max_children)
+    stack = [(root_keyword, 0, "")]
+    printed = set()
+    
+    while stack:
+        keyword, depth, prefix = stack.pop()
+        if depth > max_depth or keyword in printed:
+            continue
+        
+        #result += f"{prefix}{keyword}\n"
+        #printed.add(keyword)
+        
+        if keyword in tree:
+            children = tree[keyword]
+            for i, (child, similarity) in enumerate(reversed(children)):
+                if child not in printed:
+                    if i == 0:
+                        new_prefix = prefix + "  "
+                        child_prefix = prefix + "└ "
+                    else:
+                        new_prefix = prefix + "│ "
+                        child_prefix = prefix + "├ "
+                    result += f"{child_prefix}{child} ({similarity:.2f})\n"
+                    stack.append((child, depth + 1, new_prefix))
+    
     return result
 
-def text_relationship_tree(text, embedding_model=Embedding):
-    keywords = extract_keywords(text)
+def text_relationship_tree(text, embedding_model=Embedding,split_sentences=False):
+    keywords=[]
+    if not split_sentences :keywords=extract_keywords(text)
+    else:
+        for line in text.splitlines():keywords.extend(split_into_sentences(line))
+    
     tree = build_relationship_tree(keywords, embedding_model)
     
     #print("Text Relationship Tree:")
@@ -264,19 +308,24 @@ if __name__ == '__main__':
     random.seed(time.time())    
     items =wiki.items()
     n=800*100*100
-    f=open("testBuildTree.txt","w" ,encoding="utf-8")
-    #its=[]
+    
+    f1=open("testBuildTree.txt" , "w" ,encoding="utf-8")
+    f2=open("testBuildTreeSentence.txt" , "w" ,encoding="utf-8")
     m=0
     for x in range (n):
         k,v=next(items)
         if random.randint(1,30000)!=10 :continue 
         m+=1
-        if m>100 :break
+        if m>20 :break
         
         its=[]
         text=k +"\n"+v
         #print (k)
-        s=text_relationship_tree(text)
-        f.write(k+":\n"+s+"\n")
-    f.close()
+        s1=text_relationship_tree(text,split_sentences=False)
+        s2=text_relationship_tree(text,split_sentences=True)
+        f1.write(k+":\n"+s1+"\n")
+        f2.write(k+":\n"+s2+"\n")
+    f1.close()
+    f2.close()
+    
         
