@@ -1,4 +1,5 @@
-
+# -*- coding: utf-8 -*-
+import re
 Gbase="./"
 import os,shutil,time,json
 import torch
@@ -6,7 +7,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-import random
+import random,time 
 from transformers import PreTrainedTokenizerFast
 
 
@@ -103,6 +104,63 @@ def loadFastEmbeddingModel(device=device):
 
 EmbeddingModel = loadFastEmbeddingModel()
 Embedding=lambda x :EmbeddingModel.embeds(x).tolist()[0]
+
+
+
+
+alphabets = "([A-Za-z])"
+prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
+suffixes = "(Inc|Ltd|Jr|Sr|Co)"
+starters = "(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
+acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
+websites = "[.](com|net|org|io|gov|edu|me)"
+digits = "([0-9])"
+multiple_dots = r'\.{2,}'
+
+# 新增中文相關的正則表達式
+chinese_chars = r'[\u4e00-\u9fff]'
+chinese_punc = r'[。！？]'
+
+def split_into_sentences(text: str) -> list[str]:
+    """
+    Split the text into sentences, supporting both English and Chinese.
+
+    :param text: text to be split into sentences
+    :type text: str
+
+    :return: list of sentences
+    :rtype: list[str]
+    """
+    text = " " + text + "  "
+    text = text.replace("\n"," ")
+    text = re.sub(prefixes,"\\1<prd>",text)
+    text = re.sub(websites,"<prd>\\1",text)
+    text = re.sub(digits + "[.]" + digits,"\\1<prd>\\2",text)
+    text = re.sub(multiple_dots, lambda match: "<prd>" * len(match.group(0)) + "<stop>", text)
+    if "Ph.D" in text: text = text.replace("Ph.D.","Ph<prd>D<prd>")
+    text = re.sub("\s" + alphabets + "[.] "," \\1<prd> ",text)
+    text = re.sub(acronyms+" "+starters,"\\1<stop> \\2",text)
+    text = re.sub(alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>\\3<prd>",text)
+    text = re.sub(alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>",text)
+    text = re.sub(" "+suffixes+"[.] "+starters," \\1<stop> \\2",text)
+    text = re.sub(" "+suffixes+"[.]"," \\1<prd>",text)
+    text = re.sub(" " + alphabets + "[.]"," \\1<prd>",text)
+    if '"' in text: text = text.replace('."','".')
+    if "\"" in text: text = text.replace(".\"","\".")
+    if "!" in text: text = text.replace("!\"","\"!")
+    if "?" in text: text = text.replace("?\"","\"?")
+    
+    # 處理中文標點符號
+    text = re.sub(f"({chinese_chars}+)({chinese_punc})", "\\1\\2<stop>", text)
+    
+    text = text.replace(".",".<stop>")
+    text = text.replace("?","?<stop>")
+    text = text.replace("!","!<stop>")
+    text = text.replace("<prd>",".")
+    sentences = text.split("<stop>")
+    sentences = [s.strip() for s in sentences if s.strip()]
+    return sentences
+
 class Text:
     Black = lambda s: "\033[30m%s\033[0m" % s
     Red = lambda s: "\033[31m%s\033[0m" % s
@@ -125,16 +183,45 @@ class Text:
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-def extract_keywords(text, top_n=10):
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform([text])
-    feature_names = vectorizer.get_feature_names_out()
-    tfidf_scores = tfidf_matrix.toarray()[0]
-    word_scores = list(zip(feature_names, tfidf_scores))
+
+def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
+    lines = text.split('\n', 1)
+    title = lines[0]
+    content = lines[1] if len(lines) > 1 else ''
+    title_tokens = embedding_model.encode(title)
+    #content_tokens = embedding_model.encode(content)
+    
+
+    #if len(text )>2000:top_n=min(40,int(len(text)/200))
+    #elif len(text )>20000:top_n=min(90,int(len(text)/200))
+    
+
+    title_words = embedding_model.decode(title_tokens).split()
+    content_words = split_into_sentences(content)
+    top_n=min ( 100 ,max(20,int( len(content_words)/33)+len(title_words) ) )
+    #embedding_model.decode(content_tokens).split()
+
+    word_freq = {}
+    for word in title_words:
+        word_freq[word] = word_freq.get(word, 0) + 3  
+    for word in content_words:
+        word_freq[word] = word_freq.get(word, 0) + 1
+
+ 
+    total_words = len(title_words) * 3 + len(content_words)
+    word_scores = []
+    for word, freq in word_freq.items():
+        tf = freq / total_words
+        idf = 1  
+        score = tf * idf
+        word_scores.append((word, score))
+
+
     word_scores.sort(key=lambda x: x[1], reverse=True)
     return [word for word, score in word_scores[:top_n]]
 
-def build_relationship_tree(keywords, embeddings, threshold=0.5):
+
+def build_relationship_tree(keywords, embeddings, threshold=0.55):
     tree = {}
     for i, keyword1 in enumerate(keywords):
         tree[keyword1] = []
@@ -145,23 +232,28 @@ def build_relationship_tree(keywords, embeddings, threshold=0.5):
         tree[keyword1].sort(key=lambda x: x[1], reverse=True)
     return tree
 
-def print_tree(tree, root, level=0, max_children=3):
+def print_tree(tree, root, level=0, max_children=4):
     prefix = "  " * level
-    print(f"{prefix}{root}")
+    result = ""
+    #result += f"{prefix}{root}\n"
     if root in tree:
         for i, (child, similarity) in enumerate(tree[root][:max_children]):
-            print(f"{prefix}├─ {child} ({similarity:.2f})")
+            result += f"{prefix}├─ {child} ({similarity:.2f})\n"
             if i < len(tree[root]) - 1:
-                print_tree(tree, child, level + 1, max_children)
+                result += print_tree(tree, child, level + 1, max_children)
             else:
-                print_tree(tree, child, level + 1, max_children)
+                result += print_tree(tree, child, level + 1, max_children)
+    return result
 
 def text_relationship_tree(text, embedding_model=Embedding):
     keywords = extract_keywords(text)
     tree = build_relationship_tree(keywords, embedding_model)
     
-    print("Text Relationship Tree:")
-    print_tree(tree, keywords[0])
+    #print("Text Relationship Tree:")
+    tree_str = print_tree(tree, keywords[0])
+    print(tree_str)
+    return tree_str
+
 
 
 from fileDict3 import FileDict 
@@ -169,23 +261,22 @@ wiki=FileDict("wikipedia.sql3")
 
 if __name__ == '__main__':
     import random 
-    text="script 很早就是翻譯「腳本」，戲劇圈也是這樣講。腳本劇本都行。抓支語抓錯在所難免，辨證後，接受它是台灣既有用語即可。台灣的「排支運動」僅限於台灣，只對台灣正體中文重要，跟其他簡體字中文語言區無關。原因無它，簡體中文和台灣正體中文早已是兩種語言。台灣不能接受鳳梨被講成波蘿、也不會接受馬玲薯被改成土豆；不能接受 橫列直行 曲解成 直列橫行.在台灣有台灣標準答案的，錯就錯、對就對；我看不懂留言區一堆支語支持者在嗨什麼。.#2024年国漫开分TOP3# 《眷思量2》开分9.0、《仙逆》年番开分9.4、《诛仙2》开分9.3！2024上半年高分国漫TOP3有了！《仙逆》认真看用户的评论听取意见修改，王麻子的建模一次比一次惊艳，尤其是云天宗抢亲，这波给我甜麻了！《诛仙》第二季质感在线，打戏特效很燃，陆雪琪和鬼厉雨夜重逢还有花海大战狠狠把我刀没了！《眷思量》第二季镜玄出手偷偷救屠丽，主角团团战打戏配合默契，每个角色的高光时刻都特别酷！一句话总结，你们仨值得！"
-    print(Text.Yellow (EmbeddingModel.encode(text)) )
-    
-    print( Text.Cyan (EmbeddingModel.decode(EmbeddingModel.encode(text)) ) )
-    print (text)
-    t0=time.time()
-    n=1000
-    for x in range (n):
-        embed =Embedding(text)
-    print (embed[:10]  )
-    print (Text.Cyan ( " %s %s %s " % ( len(embed) , n*len (text )/(time.time ()-t0) ,"/s") ) )
+    random.seed(time.time())    
     items =wiki.items()
     n=800*100*100
+    f=open("testBuildTree.txt","w" ,encoding="utf-8")
+    #its=[]
+    m=0
     for x in range (n):
         k,v=next(items)
-        if random.randint(0,n)<100:continue 
+        if random.randint(1,30000)!=10 :continue 
+        m+=1
+        if m>100 :break
+        
+        its=[]
         text=k +"\n"+v
-        print (k)
-        text_relationship_tree(text)
+        #print (k)
+        s=text_relationship_tree(text)
+        f.write(k+":\n"+s+"\n")
+    f.close()
         
