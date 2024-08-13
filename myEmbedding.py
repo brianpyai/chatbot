@@ -185,7 +185,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 
-def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
+def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel,split_sentences=False):
     lines = text.split('\n', 1)
     title = lines[0]
     content = lines[1] if len(lines) > 1 else ''
@@ -198,8 +198,7 @@ def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
     
 
     title_words = embedding_model.decode(title_tokens).split()
-    #content_words=split_into_sentences(content)
-    content_words=embedding_model.decode(content_tokens).split() #split_into_sentences(content)
+    content_words=split_into_sentences(content) if split_sentences else embedding_model.decode(content_tokens).split()  #
     top_n=min ( 100 ,max(20,int( len(content_words)/33)+len(title_words) ) )
     
 
@@ -219,9 +218,9 @@ def extract_keywords(text, top_n=20, embedding_model=EmbeddingModel):
         word_scores.append((word, score))
 
 
-    #word_scores.sort(key=lambda x: x[1], reverse=True)
-    #l=int(len (word_scores)*8/10)
-    return [word for word, score in word_scores]
+    word_scores.sort(key=lambda x: x[1], reverse=True)
+    l=int(len (word_scores)*4/10)
+    return [word for word, score in word_scores][:l]
 
 
 def build_relationship_tree(keywords, embeddings):
@@ -286,17 +285,20 @@ def print_tree(tree, root_keyword, max_depth=4):
     return result
 
 def text_relationship_tree(text, embedding_model=Embedding,split_sentences=False):
-    keywords=[]
-    if not split_sentences :keywords=extract_keywords(text)
-    else:
-        for line in text.splitlines():keywords.extend(split_into_sentences(line))
+    keywords=extract_keywords(text,split_sentences=split_sentences)
+    
     
     tree = build_relationship_tree(keywords, embedding_model)
     
     #print("Text Relationship Tree:")
-    tree_str = print_tree(tree, keywords[0])
-    print(tree_str)
-    return tree_str
+    try :
+        tree_str = print_tree(tree, keywords[0])
+        print(tree_str)
+        return tree_str
+    except :
+        import traceback
+        traceback.print_exc()
+        return "" 
 
 
 
