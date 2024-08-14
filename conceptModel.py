@@ -1,68 +1,3 @@
-def build_relationship_tree(keywords, embeddings):
-    tree = {keyword: [] for keyword in keywords}
-    all_similarities = []
-    
-    # 計算所有關鍵詞對之間的相似度
-    for i, keyword1 in enumerate(keywords):
-        for j, keyword2 in enumerate(keywords[i+1:], start=i+1):
-            similarity = cosine_similarity([embeddings(keyword1)], [embeddings(keyword2)])[0][0]
-            all_similarities.append((keyword1, keyword2, similarity))
-    
-    # 計算相似度閾值
-    all_similarities.sort(key=lambda x: x[2], reverse=True)
-    num_relations = len(all_similarities)
-    num_to_keep = min(num_relations, min(80, max(int(num_relations / 50), 10)))
-    
-    if num_to_keep > 0:
-        similarity_threshold = all_similarities[num_to_keep-1][2]
-    else:
-        similarity_threshold = 0  # 如果沒有關係，設置閾值為0
-    
-    # 根據閾值添加關係，保持原始順序
-    for i, keyword1 in enumerate(keywords):
-        for j, keyword2 in enumerate(keywords[i+1:], start=i+1):
-            similarity = cosine_similarity([embeddings(keyword1)], [embeddings(keyword2)])[0][0]
-            if similarity >= similarity_threshold:
-                tree[keyword1].append((keyword2, similarity))
-                tree[keyword2].append((keyword1, similarity))
-    
-    # 對每個關鍵詞的關係列表進行排序
-    for keyword in tree:
-        tree[keyword].sort(key=lambda x: x[1], reverse=True)
-    
-    return tree
-
-def _format_concept_tree( tree, max_depth=3):
-    def _format_tree(tree, depth=0, prefix=""):
-        if depth > max_depth:
-            return ""
-        
-        output = ""
-        for i, (concept, relations) in enumerate(tree.items()):
-            if i == len(tree) - 1:
-                branch = "└─ "
-                new_prefix = prefix + "   "
-            else:
-                branch = "├─ "
-                new_prefix = prefix + "│  "
-
-            output += f"{prefix}{branch}{concept}\n"
-
-            for j, (related_concept, similarity) in enumerate(relations[:3]):  # 只显示前3个相关概念
-                if j == len(relations) - 1 or j == 2:
-                    rel_branch = "└─ "
-                else:
-                    rel_branch = "├─ "
-
-                output += f"{new_prefix}{rel_branch}{related_concept} ({similarity:.2f})\n"
-
-            if len(relations) > 3:
-                output += f"{new_prefix}└─ ...\n"
-
-        return output
-
-    return _format_tree(tree)
-
 class ConceptNetwork(nn.Module):
     def __init__(self, embedding_model, num_concepts, hidden_dim):
         super(ConceptNetwork, self).__init__()
@@ -88,36 +23,54 @@ class ConceptNetwork(nn.Module):
         predictions = self.predictor(concept_scores)
         return concept_scores, predictions, embeddings
 
-    def extract_keywords(self, text, top_n=20):
-        concept_scores, _, _ = self(text)
-        _, top_indices = torch.topk(concept_scores, min(top_n, concept_scores.size(1)))
-        keywords = [self.embedding_model.decode([idx.item()])[0] for idx in top_indices[0]]
-        return keywords
+    def generate_concept_tree(self, text, top_n=64):
+        device = next(self.parameters()).device  # Get the device of the model
 
-    def generate_concept_tree(self, text, top_n=20):
-        concept_scores, predictions, _ = self(text)
-        
-        
-        _, top_indices = torch.topk(concept_scores[0], min(top_n, concept_scores.size(1)))
-       
+        # Extract keywords using the provided function
+        keywords = extract_keywords(text, top_n=top_n, embedding_model=self.embedding_model, split_sentences=True)
+
+        # Get concept scores, predictions, and embeddings for all keywords
+        concept_scores, predictions, embeddings = self(keywords)
+
+        # Print shapes for debugging
+        print(f"concept_scores shape: {concept_scores.shape}")
+        print(f"predictions shape: {predictions.shape}")
+        print(f"embeddings shape: {embeddings.shape}")
+
+        # Reshape tensors to 2D
+        concept_scores = concept_scores.view(concept_scores.size(0), -1)
+        predictions = predictions.view(predictions.size(0), -1)
+        embeddings = embeddings.view(embeddings.size(0), -1)
+
         tree = {}
-        for i, idx in enumerate(top_indices):
-            keyword = self.embedding_model.decode([idx.item()])[0]
+        for i, keyword in enumerate(keywords):
             tree[keyword] = []
-          
-            for j, other_idx in enumerate(top_indices):
+            for j, other_keyword in enumerate(keywords):
                 if i != j:
-                    other_keyword = self.embedding_model.decode([other_idx.item()])[0]
-                    similarity = F.cosine_similarity(predictions[0, idx].unsqueeze(0), predictions[0, other_idx].unsqueeze(0))
-                    tree[keyword].append((other_keyword, similarity.item()))
-            
-           
+                    # Calculate similarity based on embeddings
+                    embedding_similarity = F.cosine_similarity(embeddings[i].unsqueeze(0), embeddings[j].unsqueeze(0))
+
+                    # Calculate similarity based on concept scores
+                    concept_similarity = F.cosine_similarity(concept_scores[i].unsqueeze(0), concept_scores[j].unsqueeze(0))
+
+                    # Calculate similarity based on predictions
+                    prediction_similarity = F.cosine_similarity(predictions[i].unsqueeze(0), predictions[j].unsqueeze(0))
+
+                    # Combine all factors
+                    combined_score = (embedding_similarity + concept_similarity + prediction_similarity) / 3
+
+                    # Ensure combined_score is a scalar
+                    combined_score = combined_score.item()
+
+                    tree[keyword].append((other_keyword, combined_score))
+
+            # Sort relations by combined score
             tree[keyword].sort(key=lambda x: x[1], reverse=True)
-        
+
         return tree
 
     def generate_tree(self, text):
-        keywords = self.extract_keywords(text)
+        keywords = extract_keywords(text, embedding_model=self.embedding_model, split_sentences=True)
         tree = build_relationship_tree(keywords, self.embedding_model.embeds)
         return tree
 
@@ -128,8 +81,7 @@ class ConceptTreeDataset(Dataset):
 
     def __getitem__(self, idx):
         title, content = next(self.items_iterator)
-        text = title + "\n" + content
-        return text
+        return title, content
 
     def __len__(self):
         return self.max_len
