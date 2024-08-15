@@ -71,36 +71,7 @@ def build_relationship_tree(keywords, embeddings):
     
     return tree
 
-def _format_concept_tree( tree, max_depth=3):
-    def _format_tree(tree, depth=0, prefix=""):
-        if depth > max_depth:
-            return ""
-        
-        output = ""
-        for i, (concept, relations) in enumerate(tree.items()):
-            if i == len(tree) - 1:
-                branch = "└─ "
-                new_prefix = prefix + "   "
-            else:
-                branch = "├─ "
-                new_prefix = prefix + "│  "
 
-            output += f"{prefix}{branch}{concept}\n"
-
-            for j, (related_concept, similarity) in enumerate(relations[:3]):  # 只显示前3个相关概念
-                if j == len(relations) - 1 or j == 2:
-                    rel_branch = "└─ "
-                else:
-                    rel_branch = "├─ "
-
-                output += f"{new_prefix}{rel_branch}{related_concept} ({similarity:.2f})\n"
-
-            if len(relations) > 3:
-                output += f"{new_prefix}└─ ...\n"
-
-        return output
-
-    return _format_tree(tree)
 
 def _format_concept_tree( tree, max_depth=3):
     def _format_tree(tree, depth=0, prefix=""):
@@ -146,12 +117,11 @@ class ConceptNetwork(nn.Module):
         self.predictor = nn.Linear(num_concepts, embedding_model.embedding.embedding_dim)
         self.device = device
    
-    def embeds(self, text):
-        with torch.no_grad():
-            ids = self.embedding_model.tokenizer(text, return_tensors='pt')['input_ids'].to(self.device)
-            embedding = self.embedding_model.embedding(ids).mean(dim=1)
-            concept_scores = self.concept_extractor(embedding)
-            return self.predictor(concept_scores)
+    def embeds(self, text):        
+        ids = self.embedding_model.tokenizer(text, return_tensors='pt')['input_ids'].to(self.device)
+        embedding = self.embedding_model.embedding(ids).mean(dim=1)
+        concept_scores = self.concept_extractor(embedding)
+        return self.predictor(concept_scores)
     
     def forward(self, texts):
         if isinstance(texts, str):
