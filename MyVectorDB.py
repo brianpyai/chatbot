@@ -172,22 +172,22 @@ class MyVectorDB:
         self.conn.commit()
 
     def _initialize_indexing(self):
-        # 从数据库加载所有嵌入
+     
         self.cursor.execute('SELECT key, embedding FROM embeddings')
         data = self.cursor.fetchall()
         keys, embeddings = zip(*[(key, np.array(json.loads(emb_json))) for key, emb_json in data])
         embeddings = np.array(embeddings)
 
-        # 初始化并应用PCA
+      
         self.pca = PCA(n_components=self.pca_dim)
         pca_embeddings = self.pca.fit_transform(embeddings)
 
-        # 初始化SimpleLSH
+      
         self.lsh = SimpleLSH(self.pca_dim, self.lsh_hash_tables, self.lsh_hash_size)
         for i, vector in enumerate(pca_embeddings):
             self.lsh.index(vector, keys[i])
 
-        # 存储索引后的嵌入
+        
         self.indexed_embeddings = dict(zip(keys, pca_embeddings))
 
     def search(self, query, top_k=10):
@@ -197,10 +197,10 @@ class MyVectorDB:
         query_vector = np.array(self.embedding_func(query))
         pca_query = self.pca.transform([query_vector])[0]
 
-        # 使用LSH找到候选集
+       
         candidate_keys = self.lsh.query(pca_query)
 
-        # 在候选集中计算精确距离
+      
         candidates = [self.indexed_embeddings[key] for key in candidate_keys if key in self.indexed_embeddings]
         if not candidates:
             return []
@@ -208,7 +208,7 @@ class MyVectorDB:
         distances = np.linalg.norm(np.array(candidates) - pca_query, axis=1)
         top_indices = np.argsort(distances)[:top_k]
 
-        # 获取结果
+       
         results = [(candidate_keys[i], 1 - distances[i]) for i in top_indices]
         return results
 
@@ -234,9 +234,8 @@ class MyVectorDB:
         self.close()
 
 def example_embedding_func(text):
-    # 这只是一个示例，实际应用中您应该使用真正的embedding函数
-    return list(np.random.rand(128))  # 假设我们使用128维的embedding，返回一个list
-
+   
+    return list(np.random.rand(128)) 
 def main():
     from fileDict3 import FileDict,FileSQL3
     from myEmbedding import Embedding,Text,ConceptNetwork,EmbeddingModel,EmbeddingConcept
