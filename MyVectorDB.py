@@ -84,6 +84,10 @@ class MyVectorDB:
         self.pca = None
         self.lsh = None
         self.indexed_embeddings = {}
+        try:
+            self._initialize_indexing()
+        except Exception as e:
+            print(f"Warning: Failed to initialize indexing: {e}")
 
     def _init_db(self):
         self.cursor.execute('''
@@ -102,6 +106,7 @@ class MyVectorDB:
             )
         ''')
         self.conn.commit()
+        
 
     def _load_embedding_dim(self):
         dim = self._load_metadata('embedding_dim')
@@ -174,6 +179,9 @@ class MyVectorDB:
      
         self.cursor.execute('SELECT key, embedding FROM embeddings')
         data = self.cursor.fetchall()
+        if not data:
+            print("No data found in the database. Indexing skipped.")
+            return
         keys, embeddings = zip(*[(key, np.array(json.loads(emb_json))) for key, emb_json in data])
         embeddings = np.array(embeddings)
 
@@ -185,7 +193,6 @@ class MyVectorDB:
         self.lsh = SimpleLSH(self.pca_dim, self.lsh_hash_tables, self.lsh_hash_size)
         for i, vector in enumerate(pca_embeddings):
             self.lsh.index(vector, keys[i])
-
         
         self.indexed_embeddings = dict(zip(keys, pca_embeddings))
 
@@ -257,7 +264,7 @@ def main():
 
     db_path = "myVectorPrompts.db"
     
-    with MyVectorDB(db_path, ConceptNetwork.embeds) as db:
+    with MyVectorDB(db_path, EmbeddingConcept) as db:
         db.add_items(d1)
 
 def test_example():
@@ -297,7 +304,7 @@ def test_performance():
     from myEmbedding import Embedding 
 
     db_path = "vector_database.db"
-    
+    #db_path="myVectorPrompts.db"
     
     num_items = 100000
     batch_size = 50000
