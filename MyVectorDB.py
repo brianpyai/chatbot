@@ -19,7 +19,7 @@ class SimpleLSH:
         self.random_vectors = np.random.randn(num_hash_tables, hash_size, input_dim)
 
     def _hash(self, vector):
-        # 将每个哈希值转换为字符串，使其可哈希
+        
         return tuple(''.join(map(str, (np.dot(vector, self.random_vectors[i].T) > 0).astype(int))) 
                      for i in range(self.num_hash_tables))
 
@@ -131,7 +131,6 @@ class MyVectorDB:
         if embeddings:
             self._add_embeddings(embeddings)
         
-        # 在所有数据添加完成后，初始化PCA和LSH
         self._initialize_indexing()
 
     def _add_embedding(self, key, embedding):
@@ -340,5 +339,5 @@ def test_performance():
             print(f"Key: {key}, Distance: {distance}")
 
 if __name__ == "__main__":
-    main()
-    #test_performance()
+    #main()
+    test_performance()
