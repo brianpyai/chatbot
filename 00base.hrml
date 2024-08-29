@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Objects</title>
+    <style>
+        body { margin: 0; background: black; }
+        #canvas-container {
+            position: relative;
+            width: 100%%;
+            height: 100%%;
+        }
+        #canvas, #game {
+            position: absolute;
+            top: 50%%;
+            left: 50%%;
+            transform: translate(-50%%, -50%%);
+        }
+        #game {
+            z-index: 10;
+        }
+        #canvas {
+            z-index: 0;
+        }
+    </style>
+    <script >
+    %s
+    </script>
+</head>
+<body>
+<div id="canvas-container">
+        <canvas id="canvas"></canvas>
+        <canvas id="game"></canvas>
+    </div>
+
+  <script>
+  // 3D Object class
+class ThreeDObject {
+    constructor(name) {
+        this.name = name;
+        this.parts = {};
+        this.group = new THREE.Group();
+        this.dict = {};
+    }
+
+    addPart(partName, geometry, material, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(...position);
+        mesh.rotation.set(...rotation);
+        mesh.scale.set(...scale);
+        this.parts[partName] = {
+            mesh: mesh,
+            material: material
+        };
+        this.group.add(mesh);
+    }
+
+    getPart(partName) {
+        return this.parts[partName].mesh;
+    }
+
+    setPartProperty(partName, property, value) {
+        if (this.parts[partName] && this.parts[partName].mesh[property]) {
+            this.parts[partName].mesh[property].set(...value);
+        }
+    }
+
+    updatePart(partName, geometry, material, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
+        if (this.parts[partName]) {
+            this.group.remove(this.parts[partName].mesh);
+        }
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(...position);
+        mesh.rotation.set(...rotation);
+        mesh.scale.set(...scale);
+        this.parts[partName] = {
+            mesh: mesh,
+            material: material
+        };
+        this.group.add(mesh);
+    }
+
+    loadImage(partName, imageUrl, mode = "contain") {
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(imageUrl, (texture) => {
+            if (!this.parts[partName]) {
+                console.error(`Part ${partName} not found`);
+                return;
+            }
+
+            const material = this.parts[partName].material;
+            const mesh = this.parts[partName].mesh;
+
+            switch (mode) {
+                case "resize":
+                    material.map = texture;
+                    material.needsUpdate = true;
+                    break;
+                case "repeat":
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.repeat.set(1, 1);
+                    material.map = texture;
+                    material.needsUpdate = true;
+                    break;
+                case "center":
+                    texture.center.set(0.5, 0.5);
+                    material.map = texture;
+                    material.needsUpdate = true;
+                    break;
+                case "cover":
+                    this.resizeTexture(texture, mesh, true);
+                    material.map = texture;
+                    material.needsUpdate = true;
+                    break;
+                case "contain":
+                    this.resizeTexture(texture, mesh, false);
+                    material.map = texture;
+                    material.needsUpdate = true;
+                    break;
+                default:
+                    console.warn(`Unknown mode: ${mode}. Using "resize" mode.`);
+                    material.map = texture;
+                    material.needsUpdate = true;
+            }
+        });
+    }
+
+    resizeTexture(texture, mesh, cover = true) {
+        const imageAspect = texture.image.width / texture.image.height;
+        const meshAspect = mesh.geometry.parameters.width / mesh.geometry.parameters.height;
+
+        let scaleX, scaleY;
+
+        if (cover ? (imageAspect > meshAspect) : (imageAspect < meshAspect)) {
+            scaleY = 1;
+            scaleX = (meshAspect / imageAspect);
+        } else {
+            scaleX = 1;
+            scaleY = (imageAspect / meshAspect);
+        }
+
+        texture.repeat.set(scaleX, scaleY);
+        texture.offset.set((1 - scaleX) / 2, (1 - scaleY) / 2);
+    }
+
+    addToScene(scene) {
+        scene.add(this.group);
+    }
+
+    static fromPng(name, pngUrl, thickness = 0.1) {
+    const object = new ThreeDObject(name);
+    object.dict = {
+        kind: 1,
+        name: name,
+        pngUrl: pngUrl,
+        thickness: thickness,
+    };
+
+    const loader = new THREE.TextureLoader();
+    loader.load(pngUrl, (texture) => {
+        const aspectRatio = texture.image.width / texture.image.height;
+        const width = 2;
+        const height = width / aspectRatio;
+
+        // Create front surface
+        const frontGeometry = new THREE.PlaneGeometry(width, height);
+        const frontMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            side: THREE.FrontSide
+        });
+        object.addPart("front", frontGeometry, frontMaterial, [0, 0, thickness/2]);
+
+        // Create back surface
+        const backGeometry = new THREE.PlaneGeometry(width, height);
+        const backMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            side: THREE.BackSide
+        });
+        object.addPart("back", backGeometry, backMaterial, [0, 0, -thickness/2]);
+    });
+
+    return object;
+}
+
+    toJson() {
+        if (this.dict.kind === 1) {
+            return JSON.stringify(this.dict);
+        }
+
+        const jsonObj = {
+            name: this.name,
+            parts: {}
+        };
+
+        for (const [partName, partData] of Object.entries(this.parts)) {
+            const mesh = partData.mesh;
+            const material = partData.material;
+            jsonObj.parts[partName] = {
+                geometry: {
+                    type: mesh.geometry.type,
+                    parameters: mesh.geometry.parameters
+                },
+                material: {
+                    type: material.type,
+                    color: material.color ? material.color.getHex() : undefined,
+                    map: material.map ? material.map.image.src : undefined
+                },
+                position: mesh.position.toArray(),
+                rotation: mesh.rotation.toArray(),
+                scale: mesh.scale.toArray()
+            };
+        }
+
+        return JSON.stringify(jsonObj);
+    }
+
+    static fromJson(jsonObj) {
+        if (typeof jsonObj === 'string') {
+            jsonObj = JSON.parse(jsonObj);
+        }
+        
+        if (jsonObj.kind === 1) {
+            return ThreeDObject.fromPng(jsonObj.name, jsonObj.pngUrl, jsonObj.thickness);
+        }
+
+        const object = new ThreeDObject(jsonObj.name);
+
+        for (const [partName, partData] of Object.entries(jsonObj.parts)) {
+            const geometry = new THREE[partData.geometry.type](...Object.values(partData.geometry.parameters));
+            const material = new THREE[partData.material.type]({
+                color: partData.material.color,
+                map: partData.material.map ? new THREE.TextureLoader().load(partData.material.map) : undefined
+            });
+
+            object.addPart(partName, geometry, material, partData.position, partData.rotation, partData.scale);
+        }
+
+        return object;
+    }
+}
+
+// Scene setup
+const gameCanvas = document.getElementById('game');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, 432 / 648, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: gameCanvas, alpha: true });
+renderer.setSize(432, 648);
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const spotLight = new THREE.SpotLight(0xffffff, 1);
+spotLight.position.set(10, 10, 10);
+scene.add(spotLight);
+
+// Position camera
+camera.position.z = %s;
+camera.position.x = 0.25;
+camera.position.y = 0.25;
+let pz1 = camera.position.z * 0.75;
+let pz2 = camera.position.z * 1.2;
+let Case = 0;
+
+const Objects = ThreeDObject.fromJson(
+%s
+);
+Objects.addToScene(scene);
+
+// Touch controls
+let isDragging = false;
+let previousTouchX = 0;
+let previousTouchY = 0;
+let previousPinchDistance = 0;
+
+gameCanvas.addEventListener('touchstart', handleTouchStart, false);
+gameCanvas.addEventListener('touchmove', handleTouchMove, false);
+gameCanvas.addEventListener('touchend', handleTouchEnd, false);
+
+function handleTouchStart(event) {
+    event.preventDefault();
+    isDragging = true;
+    if (event.touches.length === 1) {
+        previousTouchX = event.touches[0].clientX;
+        previousTouchY = event.touches[0].clientY;
+    } else if (event.touches.length === 2) {
+        previousPinchDistance = getPinchDistance(event);
+    }
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    if (!isDragging) return;
+
+    if (event.touches.length === 1) {
+        const touchX = event.touches[0].clientX;
+        const touchY = event.touches[0].clientY;
+
+        const deltaX = touchX - previousTouchX;
+        const deltaY = touchY - previousTouchY;
+
+        Objects.group.rotation.y += deltaX * 0.01;
+        Objects.group.rotation.x += deltaY * 0.01;
+
+        previousTouchX = touchX;
+        previousTouchY = touchY;
+    } else if (event.touches.length === 2) {
+        const currentPinchDistance = getPinchDistance(event);
+        const pinchDelta = currentPinchDistance - previousPinchDistance;
+
+        camera.position.z -= pinchDelta * 0.01;
+        camera.position.z = Math.max(1, Math.min(10, camera.position.z));
+
+        previousPinchDistance = currentPinchDistance;
+    }
+}
+
+function handleTouchEnd(event) {
+    isDragging = false;
+}
+
+function getPinchDistance(event) {
+    const touch1 = event.touches[0];
+    const touch2 = event.touches[1];
+    return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+}
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+
+    if (!isDragging) {
+        Objects.group.rotation.x += 0.017;
+        Objects.group.rotation.y -= 0.017;
+        Objects.group.rotation.z += 0.017;
+
+        if (Case == 0) {
+            camera.position.z -= 0.01;
+            if (camera.position.z < pz1) {
+                Case = 1;
+            }
+        } else {
+            camera.position.z += 0.01;
+            if (camera.position.z > pz2) {
+                Case = 0;
+            }
+        }
+    }
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// Handle window resizing
+window.addEventListener('resize', onWindowResize, false);
+function onWindowResize() {
+    camera.aspect = 432 / 648;
+    camera.updateProjectionMatrix();
+    renderer.setSize(432, 648);
+}
+  </script>
+</body>
+</html>
