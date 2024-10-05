@@ -81,7 +81,7 @@ class CustomDataset(Dataset):
     def __init__(self, image_paths, prompts):
         self.image_paths = image_paths
         self.prompts = prompts
-        self.max_size = 1152
+        self.max_size = 1024
 
     def __len__(self):
         return len(self.image_paths)
