@@ -4,7 +4,6 @@
 """
 
 
-
 import gc, time, os, sys, json
 from pathlib import Path
 from tqdm.auto import tqdm
@@ -25,7 +24,7 @@ except:
     cache_dir = "./hf/"
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset,DataLoader
 from PIL import Image
 from accelerate import Accelerator
 from accelerate.utils import set_seed
@@ -34,14 +33,18 @@ from transformers import AutoTokenizer
 from peft import LoraConfig, get_peft_model
 import numpy as np
 
-# Initialize the Accelerator first
-accelerator = Accelerator(mixed_precision="fp16" if torch.cuda.is_available() else "no")
+# Initialize the Accelerator
+device_type="gpu" if torch.cuda.is_available() else "cpu"
+if device_type == 'gpu':
+    accelerator = Accelerator(mixed_precision="fp16")
+else:
+    accelerator = Accelerator(mixed_precision="no")
 
 # Set a seed for reproducibility
 accelerator.wait_for_everyone()
 set_seed(42)
 
-model_id= "stabilityai/stable-diffusion-xl-base-1.0"
+model_id=  "stabilityai/stable-diffusion-xl-base-1.0"
 
 def listImages(d):
     images = []
@@ -63,31 +66,38 @@ def imageResizeX64(image):
 
 
 def load_image_to(image_path, max_size=768):
-    if isinstance(image_path, Image.Image):
-        image = image_path.convert("RGB")
-    else:
-        image = Image.open(image_path).convert("RGB")
-    
-    # Resize to a multiple of 64
-    width, height = image.size
-    new_width = (width // 64) * 64
-    new_height = (height // 64) * 64
-    
-    image = image.resize((new_width, new_height))
-    return image
+    try:
+        if isinstance(image_path, Image.Image):
+            image = image_path.convert("RGB")
+        else:
+            image = Image.open(image_path).convert("RGB")
+        
+        # Resize to a multiple of 64
+        width, height = image.size
+        new_width = (width // 64) * 64
+        new_height = (height // 64) * 64
+        
+        image = image.resize((new_width, new_height))
+        return image
+    except Exception as e:
+        print(f"Error loading image {image_path}: {str(e)}")
+        return None
 
 
 class CustomDataset(Dataset):
     def __init__(self, image_paths, prompts):
         self.image_paths = image_paths
         self.prompts = prompts
-        self.max_size = 1024
+        self.max_size = 1024 if torch.cuda.is_available() else 768
 
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
         image = load_image_to(self.image_paths[idx], self.max_size)
+        if image is None:
+            return None
+        
         prompt = self.prompts[idx]
         
         # Convert image to tensor and normalize to [-1, 1]
@@ -102,33 +112,55 @@ class CustomDataset(Dataset):
 
 from peft import get_peft_model_state_dict
 save_path = os.path.join(Gbase, "lora_weights_epoch.pt")
+# Determine target modules for LoRA
+target_modules = ["to_q", "to_v"]
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# Load the pipeline with the appropriate data type
+lora_config = LoraConfig(
+    r=32,
+    lora_alpha=64,
+    target_modules=["to_q", "to_v", "to_k", "to_out.0", "ff.net.0.proj", "ff.net.2"],
+    lora_dropout=0.08,
+    bias="none",
+    use_rslora=True
+)
+
+
+
+#LoraConfig(r=8, lora_alpha=16, target_modules=target_modules, lora_dropout=0.05, bias="none")
+
+
+
+
+
 pipeline = StableDiffusionXLPipeline.from_pretrained(
     model_id,
     cache_dir=cache_dir,
     torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
 )
-pipeline.to(accelerator.device)
-
-# Determine target modules for LoRA
-target_modules = ["to_q", "to_v"]
-
-lora_config = LoraConfig(r=16, lora_alpha=32, target_modules=target_modules, lora_dropout=0.05, bias="none")
-
-# Apply LoRA to UNet
-pipeline.unet = get_peft_model(pipeline.unet, lora_config)
-
+if torch.cuda.is_available():pipeline.enable_xformers_memory_efficient_attention()
 if os.path.exists(save_path):
     print(f"Loading existing LoRA weights from {save_path}")
-    state_dict = torch.load(save_path, map_location=device)
+    state_dict = torch.load(save_path, map_location=device ,weights_only=True)
     pipeline.unet.load_state_dict(state_dict, strict=False)
     print("LoRA weights loaded successfully")
 else:
     print("No existing LoRA weights found. Starting training from scratch.")
+pipeline.unet = get_peft_model(pipeline.unet, lora_config)
+if not torch.cuda.is_available ():pipeline.unet.enable_gradient_checkpointing()
+
+pipeline.to(accelerator.device)
+
+
+
+
+
+# Apply LoRA to UNet
 
 # Prepare the dataset
+from random import shuffle
 image_paths = listImages(os.path.join(Gbase, "newRef"))
+shuffle(image_paths)
 tempPrompts = {}
 image_paths1 = []
 with open(os.path.join(Gbase, "allPrompts.json"), 'r', encoding='utf-8') as f:
@@ -141,10 +173,10 @@ for p in image_paths:
         image_paths1.append(p)
 
 dataset = CustomDataset(image_paths1, prompts)
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
 # Create optimizer
-optimizer = torch.optim.AdamW(pipeline.unet.parameters(), lr=1e-4)
+optimizer = torch.optim.Adam(pipeline.unet.parameters(), lr=1e-4)
 
 # Prepare models and data for training
 pipeline.unet, optimizer, dataloader = accelerator.prepare(
@@ -163,13 +195,17 @@ progress_bar = tqdm(total=total_steps, desc="Training")
 # Add this function to save the LoRA weights
 def save_lora_weights(pipeline, epoch, step, save_path):
     lora_state_dict = get_peft_model_state_dict(pipeline.unet)
-    torch.save(lora_state_dict, _use_new_zipfile_serialization=False)
+    torch.save(lora_state_dict,save_path, _use_new_zipfile_serialization=False)
     print(f"LoRA weights saved at epoch {epoch}, step {step}")
 
 
 for epoch in range(num_epochs):
     for step, batch in enumerate(dataloader):
         with accelerator.accumulate(pipeline.unet):
+            if batch is None:
+                print(f"Skipping step {step} due to image loading error")
+                progress_bar.update(1)
+                continue
             # Move inputs to the correct device and adjust data types
             pixel_values = batch['pixel_values'].to(accelerator.device, dtype=pipeline.vae.dtype, non_blocking=True)
             prompts = batch['prompt']
@@ -256,7 +292,7 @@ for epoch in range(num_epochs):
         progress_bar.update(1)
         progress_bar.set_postfix({"loss": loss.item(), "epoch": epoch + 1})
         saveN=1000 if torch.cuda.is_available() else 150
-        if (step + 1) % saveN == 0:save_lora_weights(pipeline, epoch, step, save_path)
+        if (step + 1) % saveN == 0:save_lora_weights(pipeline, epoch, step,save_path)
 
 progress_bar.close()
 final_save_path = os.path.join(Gbase, "final_lora_weights.pt")
