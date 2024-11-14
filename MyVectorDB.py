@@ -1,53 +1,12 @@
-
 import sqlite3
 import json
 import os
-import time 
-import math
+import time
 import numpy as np
-from numba import njit, prange
+import faiss  # Import Faiss
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 from sklearn.decomposition import PCA
-
-class SimpleLSH:
-    def __init__(self, input_dim, num_hash_tables=10, hash_size=8):
-        self.input_dim = input_dim
-        self.num_hash_tables = num_hash_tables
-        self.hash_size = hash_size
-        self.hash_tables = [{} for _ in range(num_hash_tables)]
-        self.random_vectors = np.random.randn(num_hash_tables, hash_size, input_dim)
-
-    def _hash(self, vector):
-        
-        return tuple(''.join(map(str, (np.dot(vector, self.random_vectors[i].T) > 0).astype(int))) 
-                     for i in range(self.num_hash_tables))
-
-    def index(self, vector, key):
-        hashes = self._hash(vector)
-        for i, h in enumerate(hashes):
-            if h not in self.hash_tables[i]:
-                self.hash_tables[i][h] = set()
-            self.hash_tables[i][h].add(key)
-
-    def query(self, vector):
-        hashes = self._hash(vector)
-        candidates = set()
-        for i, h in enumerate(hashes):
-            candidates.update(self.hash_tables[i].get(h, set()))
-        return list(candidates)
-
-@njit(parallel=True)
-def compute_similarities(query_vector, embeddings, query_magnitude, magnitudes):
-    n = len(embeddings)
-    similarities = np.zeros(n)
-    for i in prange(n):
-        dot_product = np.dot(query_vector, embeddings[i])
-        if query_magnitude * magnitudes[i] == 0:
-            similarities[i] = 0
-        else:
-            similarities[i] = dot_product / (query_magnitude * magnitudes[i])
-    return similarities
 
 class Text:
     Black = lambda s: "\033[30m%s\033[0m" % s
@@ -68,7 +27,7 @@ class Text:
     White = lambda s: "\033[97m%s\033[0m" % s
 
 class MyVectorDB:
-    def __init__(self, db_path, embedding_func, pca_dim=32, lsh_hash_tables=10, lsh_hash_size=8):
+    def __init__(self, db_path, embedding_func, pca_dim=32, faiss_index_type='IDMap,Flat'):
         self.db_path = db_path
         self.embedding_func = embedding_func
         self.embedding_dim = None
@@ -78,14 +37,14 @@ class MyVectorDB:
         self._load_embedding_dim()
         
         self.pca_dim = pca_dim
-        self.lsh_hash_tables = lsh_hash_tables
-        self.lsh_hash_size = lsh_hash_size
-        
         self.pca = None
-        self.lsh = None
-        self.indexed_embeddings = {}
+        self.index = None
+        self.key_to_id = {}  # Mapping from key to Faiss ID
+        self.id_to_key = {}  # Mapping from Faiss ID to key
+        self.next_id = 0  # Next available Faiss ID
+        
         try:
-            self._initialize_indexing()
+            self._initialize_indexing(faiss_index_type)
         except Exception as e:
             print(f"Warning: Failed to initialize indexing: {e}")
 
@@ -106,7 +65,6 @@ class MyVectorDB:
             )
         ''')
         self.conn.commit()
-        
 
     def _load_embedding_dim(self):
         dim = self._load_metadata('embedding_dim')
@@ -123,11 +81,12 @@ class MyVectorDB:
         embeddings = {}
         for i, (k, v) in enumerate(items_dict.items()):
             t0 = time.time()
-            embeddings[k] = self.embedding_func(v)
+            embedding = self.embedding_func(v)
+            embeddings[k] = embedding
             t = time.time() - t0
-            sI=Text.LightYellow(i)
-            sV=Text.Cyan(v[:40])
-            sS=Text.LightGreen(len(v)/t)
+            sI = Text.LightYellow(i)
+            sV = Text.Cyan(v[:40])
+            sS = Text.LightGreen(len(v)/t if t > 0 else 0)
             
             print(f"{sI} {sV} {len(v)} {sS} chars/sec")
             if i % 20000 == 0 and i > 0:
@@ -175,47 +134,65 @@ class MyVectorDB:
             ''', (key, json.dumps(emb), magnitude))
         self.conn.commit()
 
-    def _initialize_indexing(self):
-     
+    def _initialize_indexing(self, faiss_index_type='IDMap,Flat'):
         self.cursor.execute('SELECT key, embedding FROM embeddings')
         data = self.cursor.fetchall()
         if not data:
             print("No data found in the database. Indexing skipped.")
             return
         keys, embeddings = zip(*[(key, np.array(json.loads(emb_json))) for key, emb_json in data])
-        embeddings = np.array(embeddings)
+        embeddings = np.array(embeddings).astype('float32')
 
-      
-        self.pca = PCA(n_components=self.pca_dim)
-        pca_embeddings = self.pca.fit_transform(embeddings)
+        # Optional: Apply PCA for dimensionality reduction
+        if self.pca_dim and self.pca_dim < self.embedding_dim:
+            self.pca = PCA(n_components=self.pca_dim)
+            embeddings = self.pca.fit_transform(embeddings).astype('float32')
+            current_dim = self.pca_dim
+        else:
+            current_dim = self.embedding_dim
 
-      
-        self.lsh = SimpleLSH(self.pca_dim, self.lsh_hash_tables, self.lsh_hash_size)
-        for i, vector in enumerate(pca_embeddings):
-            self.lsh.index(vector, keys[i])
+        # Initialize Faiss index
+        index_parts = faiss_index_type.split(',')
+        if len(index_parts) == 1:
+            index = faiss.index_factory(current_dim, index_parts[0], faiss.METRIC_INNER_PRODUCT)
+        else:
+            index = faiss.index_factory(current_dim, ','.join(index_parts[1:]), faiss.METRIC_INNER_PRODUCT)
+        # Wrap with IDMap to allow custom IDs
+        index = faiss.IndexIDMap(index)
         
-        self.indexed_embeddings = dict(zip(keys, pca_embeddings))
+        # Add embeddings to index with unique integer IDs
+        ids = np.arange(self.next_id, self.next_id + len(embeddings))
+        self.key_to_id = {key: idx for key, idx in zip(keys, ids)}
+        self.id_to_key = {idx: key for key, idx in zip(keys, ids)}
+        index.add_with_ids(embeddings, ids)
+        self.next_id += len(embeddings)
+        self.index = index
 
     def search(self, query, top_k=10):
-        if self.pca is None or self.lsh is None:
+        if self.index is None:
             raise ValueError("Indexing has not been initialized. Please add items first.")
-
-        query_vector = np.array(self.embedding_func(query))
-        pca_query = self.pca.transform([query_vector])[0]
-
-       
-        candidate_keys = self.lsh.query(pca_query)
-
-      
-        candidates = [self.indexed_embeddings[key] for key in candidate_keys if key in self.indexed_embeddings]
-        if not candidates:
-            return []
-
-        distances = np.linalg.norm(np.array(candidates) - pca_query, axis=1)
-        top_indices = np.argsort(distances)[:top_k]
-
-       
-        results = [(candidate_keys[i], 1 - distances[i]) for i in top_indices]
+        
+        query_vector = np.array(self.embedding_func(query)).astype('float32')
+        
+        if self.pca:
+            query_vector = self.pca.transform([query_vector]).astype('float32')[0]
+        
+        query_vector = np.expand_dims(query_vector, axis=0)
+        
+        # Perform search
+        distances, ids = self.index.search(query_vector, top_k)
+        
+        results = []
+        for dist, idx in zip(distances[0], ids[0]):
+            if idx == -1:
+                continue
+            key = self.id_to_key.get(idx, None)
+            if key:
+                # Depending on the index metric, adjust similarity
+                # For INNER_PRODUCT, higher is more similar
+                # For L2, lower is more similar
+                similarity = dist  # Adjust as needed
+                results.append((key, similarity))
         return results
 
     def _save_metadata(self, key, value):
@@ -240,43 +217,54 @@ class MyVectorDB:
         self.close()
 
 def example_embedding_func(text):
-   
+    # Replace this with your actual embedding function
     return list(np.random.rand(128)) 
-def main():
-    from fileDict3 import FileDict,FileSQL3
-    from myEmbedding import Embedding,Text,ConceptNetwork,EmbeddingModel,EmbeddingConcept
-    GeneratedImagesAll=FileDict("allnsdatasAll.sql",table="generated")
-    GeneratedImagesC=FileDict("allnsdatasAll.sql",table="characters")
-    Images=FileSQL3 ("images.sql")
-    normals=set(json.loads(GeneratedImagesC["Normal"] ) )
-    tempKeys=set(Images.keys())
-    tempDict={k:v for k,v in GeneratedImagesAll.items()}
-    print(len(tempDict.keys()))
-    keysAll=set(GeneratedImagesAll)
-    embedsDict={}
-    d1={}
 
-    for i , ( k , v ) in enumerate(GeneratedImagesAll.items() ):
-        if k not in tempKeys:continue
-        d=json.loads(v)
-        prompt =d["prompt"].split("#",1)[0]
-        d1[k]=prompt
-
-    db_path = "myVectorPrompts.db"
+def wikiFast():
+    from fileDict3 import FileDict, FileSQL3
+    from myEmbedding import Embedding, Text, ConceptNetwork, EmbeddingModel, EmbeddingConcept
     
-    with MyVectorDB(db_path, EmbeddingConcept) as db:
+    db_path = "wikiFast.db"
+    wiki = FileDict("wikipedia.sql3")
+    with MyVectorDB(db_path, embedding_func=Embedding) as db:
+        db.add_items(wiki)
+
+def main():
+    from fileDict3 import FileDict, FileSQL3
+    from myEmbedding import Embedding, Text, ConceptNetwork, EmbeddingModel, EmbeddingConcept
+    GeneratedImagesAll = FileDict("allnsdatasAll.sql", table="generated")
+    GeneratedImagesC = FileDict("allnsdatasAll.sql", table="characters")
+    Images = FileSQL3("images.sql")
+    normals = set(json.loads(GeneratedImagesC["Normal"]))
+    tempKeys = set(Images.keys())
+    tempDict = {k: v for k, v in GeneratedImagesAll.items()}
+    print(len(tempDict.keys()))
+    keysAll = set(GeneratedImagesAll)
+    embedsDict = {}
+    d1 = {}
+
+    for i, (k, v) in enumerate(GeneratedImagesAll.items()):
+        if k not in tempKeys:
+            continue
+        d = json.loads(v)
+        prompt = d["prompt"].split("#", 1)[0]
+        d1[k] = prompt
+
+    db_path = "myVectorPromptsFast.db"
+    
+    with MyVectorDB(db_path, embedding_func=Embedding) as db:
         db.add_items(d1)
 
 def test_example():
     from myEmbedding import EmbeddingConcept
 
-    db_path = "vector_database.db"
+    db_path = "wikiFast.db"
     
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    with MyVectorDB(db_path,EmbeddingConcept ) as db:
-        db.add_item("item1", "This is the first item")
+    with MyVectorDB(db_path, EmbeddingConcept) as db:
+        # db.add_item("item1", "This is the first item")
 
         items = {
             "item2": "This is the second item",
@@ -286,7 +274,7 @@ def test_example():
         db.add_items(items)
 
         query = "Search for similar items"
-        results = db.search(query, top_k=2)
+        results = db.search(query, top_k=20)
 
         print("Search results:")
         for key, distance in results:
@@ -295,7 +283,6 @@ def test_example():
 import time
 import random
 import string
-from myEmbedding import EmbeddingConcept
 
 def generate_random_text(length):
     return ''.join(random.choices(string.ascii_letters + string.digits + ' ', k=length))
@@ -303,8 +290,8 @@ def generate_random_text(length):
 def test_performance():
     from myEmbedding import Embedding 
 
-    db_path = "vector_database.db"
-    #db_path="myVectorPrompts.db"
+    db_path = "wikiFast.db"
+    # db_path = "myVectorPrompts.db"
     
     num_items = 100000
     batch_size = 50000
@@ -315,8 +302,8 @@ def test_performance():
         start_time = time.time()
         
         for i in range(0, num_items, batch_size):
-            
-            items = {f"item{j}": generate_random_text(50) for j in range(i, min(i+batch_size, num_items))}
+            # break  # Commented out to allow adding
+            items = {f"item{j}": generate_random_text(50) for j in range(i, min(i + batch_size, num_items))}
             db.add_items(items)
             
             if i % 10000 == 0:
@@ -347,4 +334,5 @@ def test_performance():
 
 if __name__ == "__main__":
     #main()
+    # wikiFast()
     test_performance()
