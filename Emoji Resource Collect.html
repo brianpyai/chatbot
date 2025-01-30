@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Resource Collector</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+        }
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #canvas, #game {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #game {
+            z-index: 10;
+        }
+        #canvas {
+            z-index: 0;
+        }
+        #energyBar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            height: 20px;
+            background: grey;
+        }
+        #energyFill {
+            height: 100%;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+       
+        <canvas id="game"></canvas>
+        <div id="energyBar"><div id="energyFill"></div></div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+
+        const GAME_STATE = {
+            player: { x: 0, y: 0, emoji: '🚶', targetX: null, targetY: null, speed: 2, energy: 200 },
+            resources: [],
+            enemies: [],
+            score: 0,
+            level: 1,
+            timeLeft: 60,
+            items: { speedBoost: 0, shield: 0, energyRestore: 0 }
+        };
+
+        const EMOJIS = {
+            tree: '🌳',
+            rock: '🪨',
+            crystal: '💎',
+            enemy: '👾'
+        };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.9;
+        }
+
+        function generateResources() {
+            GAME_STATE.resources = [];
+            for (let i = 0; i < 5 + GAME_STATE.level; i++) {
+                const type = Math.random() < 0.33 ? 'tree' : (Math.random() < 0.5 ? 'rock' : 'crystal');
+                GAME_STATE.resources.push({ x: Math.random() * canvas.width*0.9, y: Math.random() * canvas.height*0.9, type: type });
+            }
+        }
+
+        function generateEnemies() {
+            GAME_STATE.enemies = [];
+            for (let i = 0; i < GAME_STATE.level; i++) {
+                GAME_STATE.enemies.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, speed: 1 });
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'white';
+            ctx.fillText(GAME_STATE.player.emoji, GAME_STATE.player.x, GAME_STATE.player.y);
+            GAME_STATE.resources.forEach(resource => {
+                ctx.fillText(EMOJIS[resource.type], resource.x, resource.y);
+            });
+            GAME_STATE.enemies.forEach(enemy => {
+                ctx.fillText(EMOJIS.enemy, enemy.x, enemy.y);
+            });
+            ctx.fillText(`Score: ${GAME_STATE.score}`, 10, 30);
+            ctx.fillText(`Level: ${GAME_STATE.level}`, 10, 60);
+            ctx.fillText(`Time Left: ${Math.floor(GAME_STATE.timeLeft)}`, 10, 90);
+            ctx.fillText(`Energy: ${Math.floor(GAME_STATE.player.energy)}`, 10, 120);
+        }
+
+        function updateGame() {
+            if (GAME_STATE.timeLeft > 0) {
+                GAME_STATE.timeLeft -= 1 / 60; 
+            } else {
+                alert("Time's up!");
+                return;
+            }
+
+            if (GAME_STATE.player.targetX !== null && GAME_STATE.player.targetY !== null) {
+                const dx = GAME_STATE.player.targetX - GAME_STATE.player.x;
+                const dy = GAME_STATE.player.targetY - GAME_STATE.player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > GAME_STATE.player.speed) {
+                    GAME_STATE.player.x += (dx / distance) * GAME_STATE.player.speed;
+                    GAME_STATE.player.y += (dy / distance) * GAME_STATE.player.speed;
+                    GAME_STATE.player.energy -= 0.1; 
+                } else {
+                    GAME_STATE.player.x = GAME_STATE.player.targetX;
+                    GAME_STATE.player.y = GAME_STATE.player.targetY;
+                    GAME_STATE.player.targetX = null;
+                    GAME_STATE.player.targetY = null;
+                }
+            }
+
+            GAME_STATE.enemies.forEach(enemy => {
+                const dx = GAME_STATE.player.x - enemy.x;
+                const dy = GAME_STATE.player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 150) {
+                    enemy.x += (dx / distance) * enemy.speed;
+                    enemy.y += (dy / distance) * enemy.speed;
+                }
+                if (Math.abs(enemy.x - GAME_STATE.player.x) < 20 && Math.abs(enemy.y - GAME_STATE.player.y) < 20) {
+                    GAME_STATE.score = Math.max(0, GAME_STATE.score - 10);
+                }
+            });
+
+            GAME_STATE.resources = GAME_STATE.resources.filter(resource => {
+                if (Math.abs(resource.x - GAME_STATE.player.x) < 20 && Math.abs(resource.y - GAME_STATE.player.y) < 20) {
+                    if (resource.type === 'tree') {
+                        GAME_STATE.score += 10;
+                    } else if (resource.type === 'rock') {
+                        GAME_STATE.score += 5;
+                    } else if (resource.type === 'crystal') {
+                        GAME_STATE.score += 15;
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+            const energyFill = document.getElementById('energyFill');
+            energyFill.style.width = `${GAME_STATE.player.energy}px`;
+
+            if (GAME_STATE.resources.length === 0) {
+                GAME_STATE.level++;
+                generateResources();
+                generateEnemies();
+                GAME_STATE.timeLeft += 30; 
+            }
+
+            drawGame();
+            requestAnimationFrame(updateGame);
+        }
+
+        function handleClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            GAME_STATE.player.targetX = e.clientX - rect.left;
+            GAME_STATE.player.targetY = e.clientY - rect.top;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            handleClick(touch);
+        });
+
+        resizeCanvas();
+        generateResources();
+        generateEnemies();
+        GAME_STATE.player.x = canvas.width / 2;
+        GAME_STATE.player.y = canvas.height / 2;
+        updateGame();
+    </script>
+</body>
+</html>
