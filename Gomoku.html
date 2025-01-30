@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>人機對戰五子棋</title>
+    <style>
+        canvas {
+            border: 1px solid #000;
+            background-color: #f0d9b5;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>人機對戰五子棋</h1>
+    <canvas id="board" width="600" height="600"></canvas>
+    <p>玩家：黑棋 (先手) | 機器：白棋</p>
+
+    <script>
+        const ROWS = 15;
+        const COLS = 15;
+        const CELL_SIZE = 40;
+        const OFFSET = 20;
+
+        const EMPTY = 0;
+        const BLACK = 1;
+        const WHITE = 2;
+
+        let board = new Uint8Array(ROWS * COLS);
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw grid
+            for (let i = 0; i < ROWS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(OFFSET, OFFSET + i * CELL_SIZE);
+                ctx.lineTo(OFFSET + (COLS - 1) * CELL_SIZE, OFFSET + i * CELL_SIZE);
+                ctx.stroke();
+            }
+            for (let j = 0; j < COLS; j++) {
+                ctx.beginPath();
+                ctx.moveTo(OFFSET + j * CELL_SIZE, OFFSET);
+                ctx.lineTo(OFFSET + j * CELL_SIZE, OFFSET + (ROWS - 1) * CELL_SIZE);
+                ctx.stroke();
+            }
+            // Draw stones
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    const cell = board[i * COLS + j];
+                    if (cell !== EMPTY) {
+                        ctx.beginPath();
+                        ctx.arc(OFFSET + j * CELL_SIZE, OFFSET + i * CELL_SIZE, CELL_SIZE / 2 - 2, 0, 2 * Math.PI);
+                        ctx.fillStyle = cell === BLACK ? 'black' : 'white';
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function checkWin(x, y) {
+            const directions = [
+                { dx: 1, dy: 0 },
+                { dx: 0, dy: 1 },
+                { dx: 1, dy: 1 },
+                { dx: 1, dy: -1 }
+            ];
+            const current = board[y * COLS + x];
+            for (let dir of directions) {
+                let count = 1;
+                let i = 1;
+                while (true) {
+                    const nx = x + dir.dx * i;
+                    const ny = y + dir.dy * i;
+                    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS || board[ny * COLS + nx] !== current) break;
+                    count++;
+                    i++;
+                }
+                i = 1;
+                while (true) {
+                    const nx = x - dir.dx * i;
+                    const ny = y - dir.dy * i;
+                    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS || board[ny * COLS + nx] !== current) break;
+                    count++;
+                    i++;
+                }
+                if (count >= 5) return current;
+            }
+            return EMPTY;
+        }
+
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((event.clientX - rect.left - OFFSET + CELL_SIZE / 2) / CELL_SIZE);
+            const y = Math.floor((event.clientY - rect.top - OFFSET + CELL_SIZE / 2) / CELL_SIZE);
+            if (x >= 0 && x < COLS && y >= 0 && y < ROWS && board[y * COLS + x] === EMPTY) {
+                board[y * COLS + x] = BLACK;
+                drawBoard();
+                const winner = checkWin(x, y);
+                if (winner === BLACK) {
+                    alert('玩家勝利！');
+                    resetGame();
+                    return;
+                }
+                setTimeout(() => {
+                    const move = getBestMove(board, WHITE);
+                    if (move) {
+                        board[move.y * COLS + move.x] = WHITE;
+                        drawBoard();
+                        const winner = checkWin(move.x, move.y);
+                        if (winner === WHITE) {
+                            alert('機器勝利！');
+                            resetGame();
+                        }
+                    }
+                }, 100);
+            }
+        });
+
+        function resetGame() {
+            board.fill(EMPTY);
+            drawBoard();
+            // Optional: AI starts if not first to move
+        }
+
+        // Enhanced Evaluation Function with pattern scoring
+        function evaluate(board, player) {
+            let score = 0;
+            const opponent = player === BLACK ? WHITE : BLACK;
+
+            // Define pattern scores
+            const patterns = {
+                'five': 100000,
+                'double_four': 10000,
+                'four': 1000,
+                'double_three': 1000,
+                'live_three': 1000,
+                'dead_three': 100,
+                'double_two': 100,
+                'live_two': 100,
+                'dead_two': 10
+            };
+
+            // Iterate over the board to find patterns
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    if (board[i * COLS + j] === player) {
+                        score += evaluatePosition(board, j, i, player, patterns);
+                    } else if (board[i * COLS + j] === opponent) {
+                        score -= evaluatePosition(board, j, i, opponent, patterns) * 1.1; // Slightly prioritize blocking
+                    }
+                }
+            }
+            return score;
+        }
+
+        function evaluatePosition(board, x, y, player, patterns) {
+            let totalScore = 0;
+            const directions = [
+                { dx: 1, dy: 0 },  // Horizontal
+                { dx: 0, dy: 1 },  // Vertical
+                { dx: 1, dy: 1 },  // Diagonal down-right
+                { dx: 1, dy: -1 }  // Diagonal up-right
+            ];
+
+            for (let dir of directions) {
+                let count = 1;
+                let openEnds = 0;
+
+                // Check forward direction
+                let i = 1;
+                while (true) {
+                    const nx = x + dir.dx * i;
+                    const ny = y + dir.dy * i;
+                    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS || board[ny * COLS + nx] !== player) break;
+                    count++;
+                    i++;
+                }
+
+                // Check backward direction
+                i = 1;
+                while (true) {
+                    const nx = x - dir.dx * i;
+                    const ny = y - dir.dy * i;
+                    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS || board[ny * COLS + nx] !== player) break;
+                    count++;
+                    i++;
+                }
+
+                // Check open ends
+                const frontX = x + dir.dx * (count);
+                const frontY = y + dir.dy * (count);
+                if (frontX >= 0 && frontX < COLS && frontY >= 0 && frontY < ROWS && board[frontY * COLS + frontX] === EMPTY) {
+                    openEnds++;
+                }
+                const backX = x - dir.dx * (count);
+                const backY = y - dir.dy * (count);
+                if (backX >= 0 && backX < COLS && backY >= 0 && backY < ROWS && board[backY * COLS + backX] === EMPTY) {
+                    openEnds++;
+                }
+
+                // Assign score based on the count and open ends
+                if (count >= 5) {
+                    totalScore += patterns['five'];
+                } else if (count === 4) {
+                    if (openEnds === 2) {
+                        totalScore += patterns['double_four'];
+                    } else if (openEnds === 1) {
+                        totalScore += patterns['four'];
+                    }
+                } else if (count === 3) {
+                    if (openEnds === 2) {
+                        totalScore += patterns['double_three'];
+                        totalScore += patterns['live_three'];
+                    } else if (openEnds === 1) {
+                        totalScore += patterns['dead_three'];
+                    }
+                } else if (count === 2) {
+                    if (openEnds === 2) {
+                        totalScore += patterns['double_two'];
+                        totalScore += patterns['live_two'];
+                    } else if (openEnds === 1) {
+                        totalScore += patterns['dead_two'];
+                    }
+                }
+            }
+
+            return totalScore;
+        }
+
+        // Alpha-Beta Pruned Minimax
+        function minimax(board, depth, alpha, beta, maximizingPlayer, player) {
+            const winner = checkFullBoard(board);
+            if (depth === 0 || winner !== EMPTY) {
+                return { score: evaluate(board, player) };
+            }
+
+            const moves = generateMoves(board);
+            if (moves.length === 0) {
+                return { score: 0 };
+            }
+
+            let bestMove = null;
+
+            if (maximizingPlayer) {
+                let maxEval = -Infinity;
+                for (let move of moves) {
+                    board[move.y * COLS + move.x] = player;
+                    const evalResult = minimax(board, depth - 1, alpha, beta, false, 3 - player).score;
+                    board[move.y * COLS + move.x] = EMPTY;
+                    if (evalResult > maxEval) {
+                        maxEval = evalResult;
+                        bestMove = move;
+                    }
+                    alpha = Math.max(alpha, evalResult);
+                    if (beta <= alpha) break; // Beta cut-off
+                }
+                return { score: maxEval, move: bestMove };
+            } else {
+                let minEval = Infinity;
+                for (let move of moves) {
+                    board[move.y * COLS + move.x] = player;
+                    const evalResult = minimax(board, depth - 1, alpha, beta, true, 3 - player).score;
+                    board[move.y * COLS + move.x] = EMPTY;
+                    if (evalResult < minEval) {
+                        minEval = evalResult;
+                        bestMove = move;
+                    }
+                    beta = Math.min(beta, evalResult);
+                    if (beta <= alpha) break; // Alpha cut-off
+                }
+                return { score: minEval, move: bestMove };
+            }
+        }
+
+        function checkFullBoard(board) {
+            for (let i = 0; i < ROWS * COLS; i++) {
+                if (board[i] === EMPTY) return EMPTY;
+            }
+            return EMPTY; // Draw
+        }
+
+        function generateMoves(board) {
+            const movesSet = new Set();
+            const directions = [
+                { dx: 1, dy: 0 },
+                { dx: -1, dy: 0 },
+                { dx: 0, dy: 1 },
+                { dx: 0, dy: -1 },
+                { dx: 1, dy: 1 },
+                { dx: -1, dy: -1 },
+                { dx: 1, dy: -1 },
+                { dx: -1, dy: 1 }
+            ];
+
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    if (board[i * COLS + j] !== EMPTY) {
+                        for (let dir of directions) {
+                            const ni = i + dir.dy;
+                            const nj = j + dir.dx;
+                            if (ni >= 0 && ni < ROWS && nj >= 0 && nj < COLS && board[ni * COLS + nj] === EMPTY) {
+                                movesSet.add(`${ni},${nj}`);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If the board is empty, start with the center
+            if (movesSet.size === 0) {
+                const center = Math.floor(COLS / 2);
+                return [{ x: center, y: center }];
+            }
+
+            // Convert to array of move objects
+            let moves = [...movesSet].map(str => {
+                const [y, x] = str.split(',').map(Number);
+                return { x, y };
+            });
+
+            // Sort moves based on heuristic to improve alpha-beta pruning efficiency
+            moves.sort((a, b) => {
+                const scoreA = evaluate(board, WHITE, a.x, a.y);
+                const scoreB = evaluate(board, WHITE, b.x, b.y);
+                return scoreB - scoreA;
+            });
+
+            return moves;
+        }
+
+        const SEARCH_DEPTH = 4; // Increased search depth
+        function getBestMove(currentBoard, player) {
+            const result = minimax(currentBoard, SEARCH_DEPTH, -Infinity, Infinity, true, player);
+            return result.move;
+        }
+
+        // Initialize the game with the first move as center to enhance opening strategy
+        function initialMove() {
+            const center = Math.floor(COLS / 2);
+            board[center * COLS + center] = WHITE;
+            drawBoard();
+        }
+
+        resetGame();
+        initialMove();
+    </script>
+</body>
+</html>
