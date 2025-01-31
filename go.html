@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Improved Simple Go Game (13×13) - Fixed Click Position</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      margin: 0 auto;
+      padding: 1rem;
+      max-width: 800px;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #000;
+      background-color: #DEB887;
+      cursor: pointer;
+      display: block;
+      margin: 0 auto;
+      width: 100%;
+      height: auto;
+    }
+    .info-bar {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 16px;
+      cursor: pointer;
+      border: 1px solid #555;
+      border-radius: 4px;
+      background-color: #f7f7f7;
+    }
+    button:hover {
+      background-color: #eee;
+    }
+    .score-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-top: 0.5rem;
+    }
+    .score-container p {
+      margin: 0.25rem 0;
+    }
+    .logs {
+      margin-top: 1rem;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      background: #fafafa;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 600px) {
+      .info-bar {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Improved Simple Go Game (13×13)</h1>
+
+  <div class="info-bar">
+    <div class="score-container">
+      <p id="turn-info">Current Player: Black</p>
+      <p id="score-black">Black Stones: 0</p>
+      <p id="score-white">White Stones: 0</p>
+      <p id="territory-black">Black Territory: 0</p>
+      <p id="territory-white">White Territory: 0</p>
+    </div>
+    <div>
+      <button onclick="undoMove()">Undo Move</button>
+      <button onclick="resetGame()">Reset Game</button>
+    </div>
+  </div>
+
+  <!-- Game Board -->
+  <canvas id="board" width="520" height="520"></canvas>
+
+  <div class="logs" id="log-output"></div>
+
+  <script>
+    /************************************************************
+     *                    GAME CONSTANTS
+     ************************************************************/
+    const ROWS = 13;
+    const COLS = 13;
+    const CELL_SIZE = 40; // Base cell size (for illustration)
+    const OFFSET = 20;    // Margin around the board
+
+    const EMPTY = 0;
+    const BLACK = 1;
+    const WHITE = 2;
+
+    // Base search depth
+    const SEARCH_DEPTH = 3;
+
+    // For the simplified Monte Carlo approach
+    const MONTE_CARLO_SAMPLES = 4; // small sampling count
+    const MONTE_CARLO_DEPTH = 6;   // short random playout depth
+
+    /************************************************************
+     *                    GAME STATE
+     ************************************************************/
+    let board = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+    let moveHistory = [];
+    let currentPlayer = BLACK;
+
+    // Canvas and 2D context
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+
+    // Log output
+    const logOutput = document.getElementById('log-output');
+
+    // Scoreboard references
+    const turnInfo = document.getElementById('turn-info');
+    const blackStoneCountEl = document.getElementById('score-black');
+    const whiteStoneCountEl = document.getElementById('score-white');
+    const blackTerritoryEl = document.getElementById('territory-black');
+    const whiteTerritoryEl = document.getElementById('territory-white');
+
+    /************************************************************
+     *                    DRAW FUNCTIONS
+     ************************************************************/
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const currentCellSizeX = (canvas.width - 2 * OFFSET) / (COLS - 1);
+      const currentCellSizeY = (canvas.height - 2 * OFFSET) / (ROWS - 1);
+      const currentCellSize = Math.min(currentCellSizeX, currentCellSizeY);
+
+      // Draw grid lines
+      for (let i = 0; i < ROWS; i++) {
+        ctx.beginPath();
+        ctx.moveTo(OFFSET, OFFSET + i * currentCellSize);
+        ctx.lineTo(OFFSET + (COLS - 1) * currentCellSize, OFFSET + i * currentCellSize);
+        ctx.stroke();
+      }
+      for (let j = 0; j < COLS; j++) {
+        ctx.beginPath();
+        ctx.moveTo(OFFSET + j * currentCellSize, OFFSET);
+        ctx.lineTo(OFFSET + j * currentCellSize, OFFSET + (ROWS - 1) * currentCellSize);
+        ctx.stroke();
+      }
+
+      // Draw stones
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (board[y][x] !== EMPTY) {
+            ctx.beginPath();
+            ctx.arc(
+              OFFSET + x * currentCellSize,
+              OFFSET + y * currentCellSize,
+              currentCellSize / 2 - 4,
+              0,
+              2 * Math.PI
+            );
+            ctx.fillStyle = board[y][x] === BLACK ? 'black' : 'white';
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    function updateScores() {
+      const bStones = countStones(board, BLACK);
+      const wStones = countStones(board, WHITE);
+      const bTerritory = countTerritory(board, BLACK);
+      const wTerritory = countTerritory(board, WHITE);
+
+      blackStoneCountEl.textContent = 'Black Stones: ' + bStones;
+      whiteStoneCountEl.textContent = 'White Stones: ' + wStones;
+      blackTerritoryEl.textContent = 'Black Territory: ' + bTerritory;
+      whiteTerritoryEl.textContent = 'White Territory: ' + wTerritory;
+      turnInfo.textContent =
+        'Current Player: ' + (currentPlayer === BLACK ? 'Black' : 'White');
+    }
+
+    /************************************************************
+     *                 BOARD UTILITY FUNCTIONS
+     ************************************************************/
+    function countStones(bd, color) {
+      let stones = 0;
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (bd[y][x] === color) {
+            stones++;
+          }
+        }
+      }
+      return stones;
+    }
+
+    // Group liberties check
+    function hasLiberty(bd, x, y, color, visited = new Set()) {
+      const key = `${x},${y}`;
+      if (visited.has(key)) return false;
+      visited.add(key);
+
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+
+      for (let dir of directions) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        if (bd[ny][nx] === EMPTY) {
+          return true; // immediate liberty found
+        }
+        if (bd[ny][nx] === color) {
+          if (hasLiberty(bd, nx, ny, color, visited)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Capture an entire connected group
+    function captureStones(bd, x, y, color, visited = new Set()) {
+      const key = `${x},${y}`;
+      if (visited.has(key)) return;
+      visited.add(key);
+
+      bd[y][x] = EMPTY;
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+      for (let dir of directions) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        if (bd[ny][nx] === color) {
+          captureStones(bd, nx, ny, color, visited);
+        }
+      }
+    }
+
+    function removeCapturedStones(bd, x, y, color) {
+      const opponent = color === BLACK ? WHITE : BLACK;
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+      for (let dir of directions) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        if (bd[ny][nx] === opponent) {
+          if (!hasLiberty(bd, nx, ny, opponent)) {
+            captureStones(bd, nx, ny, opponent);
+          }
+        }
+      }
+    }
+
+    // Territory counting
+    function countTerritory(bd, color) {
+      let visited = new Set();
+      let territoryCount = 0;
+
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (bd[y][x] === EMPTY) {
+            const regionInfo = exploreRegion(bd, x, y, visited);
+            if (regionInfo.surroundedBy === color) {
+              territoryCount += regionInfo.size;
+            }
+          }
+        }
+      }
+      return territoryCount;
+    }
+
+    function exploreRegion(bd, startX, startY, visited) {
+      const queue = [{ x: startX, y: startY }];
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+
+      let regionColors = new Set();
+      let size = 0;
+      visited.add(`${startX},${startY}`);
+
+      while (queue.length) {
+        const { x, y } = queue.shift();
+        size++;
+
+        for (let dir of directions) {
+          const nx = x + dir.dx;
+          const ny = y + dir.dy;
+          if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+
+          if (bd[ny][nx] === EMPTY && !visited.has(`${nx},${ny}`)) {
+            visited.add(`${nx},${ny}`);
+            queue.push({ x: nx, y: ny });
+          } else if (bd[ny][nx] === BLACK) {
+            regionColors.add(BLACK);
+          } else if (bd[ny][nx] === WHITE) {
+            regionColors.add(WHITE);
+          }
+        }
+      }
+
+      let surroundedBy = null;
+      if (regionColors.size === 1) {
+        surroundedBy = regionColors.has(BLACK) ? BLACK : WHITE;
+      }
+
+      return { size, surroundedBy };
+    }
+
+    /************************************************************
+     *                      AI WITH IMPROVEMENTS
+     ************************************************************/
+    // 1) More nuanced evaluation function includes:
+    //    - Stone safety (liberties)
+    //    - Capture priority
+    //    - Territory influence
+    //    - Basic threat detection
+    //    - Simple shape patterns
+    //    - A bit of Monte Carlo sampling for uncertain positions
+    function evaluateBoard(bd, player) {
+      // Basic differences in stones & territory
+      let baseScore = basicEvaluation(bd, player);
+
+      // Monte Carlo sampling bonus (very simplified)
+      let mcBonus = monteCarloSampling(bd, player, MONTE_CARLO_SAMPLES, MONTE_CARLO_DEPTH);
+
+      // Return sum of base score + minor MC bonus
+      return baseScore + mcBonus;
+    }
+
+    // Simple direct difference of (stones + territory)
+    function basicEvaluation(bd, player) {
+      const opponent = player === BLACK ? WHITE : BLACK;
+
+      const playerStones = countStones(bd, player);
+      const oppStones = countStones(bd, opponent);
+      const playerTerr = countTerritory(bd, player);
+      const oppTerr = countTerritory(bd, opponent);
+
+      // Score from vantage of the AI color (player)
+      return (playerStones + playerTerr) - (oppStones + oppTerr);
+    }
+
+    // Monte Carlo: randomly play a few moves from current position
+    // and measure final basicEvaluation. Then average results.
+    function monteCarloSampling(bd, player, samples, depth) {
+      let totalScore = 0;
+      for (let i = 0; i < samples; i++) {
+        let bdCopy = copyBoard(bd);
+        let scr = randomPlayout(bdCopy, player, depth);
+        totalScore += scr;
+      }
+      return totalScore / samples / 10; 
+      // scale down for slight influence (avoid overshadowing everything)
+    }
+
+    // Do random moves for "depth" steps, then evaluate
+    function randomPlayout(bd, startPlayer, depth) {
+      let p = startPlayer;
+      for (let i = 0; i < depth; i++) {
+        let moves = generateAllEmptySpots(bd);
+        if (moves.length === 0) break;
+        let rndIdx = Math.floor(Math.random() * moves.length);
+        let move = moves[rndIdx];
+
+        // Place stone if not self-capture
+        bd[move.y][move.x] = p;
+        removeCapturedStones(bd, move.x, move.y, p);
+        if (!hasLiberty(bd, move.x, move.y, p)) {
+          // revert
+          bd[move.y][move.x] = EMPTY;
+        }
+        p = switchPlayer(p);
+      }
+      // Evaluate from perspective of startPlayer
+      return basicEvaluation(bd, startPlayer);
+    }
+
+    function copyBoard(bd) {
+      return bd.map(row => row.slice());
+    }
+
+    // Minimax with alpha-beta
+    function minimax(bd, depth, alpha, beta, maximizingPlayer, plColor) {
+      if (depth === 0) {
+        return { score: evaluateBoard(bd, currentPlayer) };
+      }
+
+      const moves = generateMoves(bd, plColor);
+      if (moves.length === 0) {
+        return { score: evaluateBoard(bd, currentPlayer) };
+      }
+
+      let bestMove = null;
+
+      if (maximizingPlayer) {
+        let maxEval = -Infinity;
+        for (let move of moves) {
+          let newBoard = copyBoard(bd);
+          newBoard[move.y][move.x] = plColor;
+          removeCapturedStones(newBoard, move.x, move.y, plColor);
+
+          // Disallow self-capture
+          if (!hasLiberty(newBoard, move.x, move.y, plColor)) {
+            continue;
+          }
+
+          // If capturing stones, add a large immediate bonus to the board
+          let captureBonus = 0;
+          captureBonus += countCaptureGain(bd, newBoard, plColor) * 5;
+
+          let evalResult =
+            minimax(newBoard, depth - 1, alpha, beta, false, switchPlayer(plColor)).score +
+            captureBonus;
+
+          if (evalResult > maxEval) {
+            maxEval = evalResult;
+            bestMove = move;
+          }
+          alpha = Math.max(alpha, evalResult);
+          if (beta <= alpha) {
+            break;
+          }
+        }
+        return { score: maxEval, move: bestMove };
+      } else {
+        let minEval = Infinity;
+        for (let move of moves) {
+          let newBoard = copyBoard(bd);
+          newBoard[move.y][move.x] = plColor;
+          removeCapturedStones(newBoard, move.x, move.y, plColor);
+
+          if (!hasLiberty(newBoard, move.x, move.y, plColor)) {
+            continue;
+          }
+
+          let captureBonus = 0;
+          captureBonus += countCaptureGain(bd, newBoard, plColor) * 5;
+
+          let evalResult =
+            minimax(newBoard, depth - 1, alpha, beta, true, switchPlayer(plColor)).score +
+            captureBonus;
+
+          if (evalResult < minEval) {
+            minEval = evalResult;
+            bestMove = move;
+          }
+          beta = Math.min(beta, evalResult);
+          if (beta <= alpha) {
+            break;
+          }
+        }
+        return { score: minEval, move: bestMove };
+      }
+    }
+
+    // Count how many stones were captured from bd -> newBd for "color"
+    // This helps prioritize capturing moves
+    function countCaptureGain(oldBd, newBd, color) {
+      let oldOppCount = color === BLACK ? countStones(oldBd, WHITE) : countStones(oldBd, BLACK);
+      let newOppCount = color === BLACK ? countStones(newBd, WHITE) : countStones(newBd, BLACK);
+      return oldOppCount - newOppCount; 
+    }
+
+    // Generate candidate moves (smaller subset focusing near existing stones)
+    function generateMoves(bd, player) {
+      const movesSet = new Set();
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+
+      if (isBoardEmpty(bd)) {
+        const center = Math.floor(COLS / 2);
+        return [{ x: center, y: center }];
+      }
+
+      // Gather adjacent empty cells
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (bd[y][x] !== EMPTY) {
+            for (let dir of directions) {
+              const nx = x + dir.dx;
+              const ny = y + dir.dy;
+              if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && bd[ny][nx] === EMPTY) {
+                movesSet.add(`${ny},${nx}`);
+              }
+            }
+          }
+        }
+      }
+
+      let moves = [...movesSet].map(str => {
+        const [yy, xx] = str.split(',').map(Number);
+        return { x: xx, y: yy };
+      });
+
+      // Sort candidate moves by heuristic
+      moves.sort((a, b) => {
+        const scoreA = evaluateMoveHeuristic(bd, a.x, a.y, player);
+        const scoreB = evaluateMoveHeuristic(bd, b.x, b.y, player);
+        return scoreB - scoreA;
+      });
+
+      // Keep only top N
+      const MAX_MOVES = 20;
+      if (moves.length > MAX_MOVES) {
+        moves = moves.slice(0, MAX_MOVES);
+      }
+      return moves;
+    }
+
+    // Generate every empty spot (used by randomPlayout)
+    function generateAllEmptySpots(bd) {
+      let spots = [];
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (bd[y][x] === EMPTY) {
+            spots.push({ x, y });
+          }
+        }
+      }
+      return spots;
+    }
+
+    function isBoardEmpty(bd) {
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (bd[y][x] !== EMPTY) return false;
+        }
+      }
+      return true;
+    }
+
+    // A heuristic function for ordering moves:
+    // nearby center, plus some pattern preference
+    function evaluateMoveHeuristic(bd, x, y, player) {
+      const center = Math.floor(COLS / 2);
+      const distFromCenter = Math.abs(x - center) + Math.abs(y - center);
+
+      // Check if placing here would form a group with more liberties
+      // as a simple measure of "group building"
+      let groupBonus = approximateGroupFormation(bd, x, y, player);
+
+      // We give negative for distance from center, plus positive for group formation
+      return -distFromCenter + groupBonus;
+    }
+
+    // Approximate check of how many same-color stones are around
+    function approximateGroupFormation(bd, x, y, color) {
+      let adjacency = 0;
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+      for (let dir of directions) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+          if (bd[ny][nx] === color) adjacency++;
+        }
+      }
+      // Return small bonus for each adjacent same-color stone
+      return adjacency * 2;
+    }
+
+    function switchPlayer(p) {
+      return p === BLACK ? WHITE : BLACK;
+    }
+
+    /************************************************************
+     *                  AI MOVE INTERFACE
+     ************************************************************/
+    function getBestMove(bd, player) {
+      // For capturing moves or critical moves, we might add depth
+      // but let's keep a simple approach: we do the standard minimax
+      const { move } = minimax(bd, SEARCH_DEPTH, -Infinity, Infinity, true, player);
+      return move;
+    }
+
+    /************************************************************
+     *                GAME INTERACTION FUNCTIONS
+     ************************************************************/
+    canvas.addEventListener('click', (evt) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const clickX = (evt.clientX - rect.left) * scaleX;
+      const clickY = (evt.clientY - rect.top) * scaleY;
+
+      const currentCellSizeX = (canvas.width - 2 * OFFSET) / (COLS - 1);
+      const currentCellSizeY = (canvas.height - 2 * OFFSET) / (ROWS - 1);
+      const currentCellSize = Math.min(currentCellSizeX, currentCellSizeY);
+
+      const x = Math.floor((clickX - OFFSET) / currentCellSize + 0.5);
+      const y = Math.floor((clickY - OFFSET) / currentCellSize + 0.5);
+
+      if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
+        return;
+      }
+
+      if (board[y][x] === EMPTY) {
+        const newBoard = copyBoard(board);
+        newBoard[y][x] = currentPlayer;
+
+        removeCapturedStones(newBoard, x, y, currentPlayer);
+
+        if (!hasLiberty(newBoard, x, y, currentPlayer)) {
+          alert('Self-capture is not allowed.');
+          return;
+        }
+
+        moveHistory.push({
+          board: copyBoard(board),
+          currentPlayer
+        });
+
+        board = newBoard;
+        drawBoard();
+        updateScores();
+
+        let isGameDone = false; 
+        // You can add a custom "game over" condition if desired.
+        if (!isGameDone) {
+          currentPlayer = switchPlayer(currentPlayer);
+          updateScores();
+          log(`Player placed a stone at (${x}, ${y}).`);
+
+          // Let the AI move if it's White's turn
+          if (currentPlayer === WHITE) {
+            setTimeout(() => {
+              aiMove();
+            }, 200);
+          }
+        }
+      }
+    });
+
+    function aiMove() {
+      const move = getBestMove(board, WHITE);
+      if (!move) {
+        log('AI finds no move (possibly pass).');
+        return;
+      }
+
+      let aiBoard = copyBoard(board);
+      aiBoard[move.y][move.x] = WHITE;
+      removeCapturedStones(aiBoard, move.x, move.y, WHITE);
+
+      if (!hasLiberty(aiBoard, move.x, move.y, WHITE)) {
+        log('AI would self-capture here. Possibly pass.');
+        return;
+      }
+
+      moveHistory.push({
+        board: copyBoard(board),
+        currentPlayer
+      });
+
+      board = aiBoard;
+      drawBoard();
+      updateScores();
+      log(`AI placed a stone at (${move.x}, ${move.y}).`);
+
+      currentPlayer = switchPlayer(currentPlayer);
+      updateScores();
+    }
+
+    function undoMove() {
+      if (moveHistory.length > 0) {
+        const lastState = moveHistory.pop();
+        board = lastState.board;
+        currentPlayer = lastState.currentPlayer;
+        drawBoard();
+        updateScores();
+        log('Undo last move.');
+      } else {
+        alert('No moves to undo.');
+      }
+    }
+
+    function resetGame() {
+      board = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+      moveHistory = [];
+      currentPlayer = BLACK;
+      drawBoard();
+      updateScores();
+      logOutput.textContent = '';
+      log('Game reset.');
+    }
+
+    /************************************************************
+     *                     LOGGING
+     ************************************************************/
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      logOutput.textContent += `[${timestamp}] ${message}\n`;
+      logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    /************************************************************
+     *                   INIT ON PAGE LOAD
+     ************************************************************/
+    window.addEventListener('load', () => {
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.width; // keep canvas square
+        drawBoard();
+        updateScores();
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      resetGame();
+    });
+  </script>
+</body>
+</html>
