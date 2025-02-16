@@ -42,15 +42,6 @@ sudo apt install clang cmake opencl-headers libopenblas-dev
 sudo apt install python3-torch python3-torchaudio python3-torchtext python3-torchvision
 sudo apt install libideep-dev libtorch-dev libonnx1
 sudo apt install pandoc build-essential git-lfs
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-git clone https://github.com/RustPython/RustPython
-cd RustPython
-cargo install --path . --features ssl
-rustpython --install-pip
-cd
-echo "source rustpy/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm" > rustpy.env
-rustpython -m venv rustpy
-source rustpy.env
 
 ```
 
