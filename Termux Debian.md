@@ -40,7 +40,7 @@ login $user
 ```bash
 sudo apt update && apt upgrade
 sudo apt install python3-full git curl vim wget python-is-python3 python3-pip
-sudo apt install clang cmake opencl-headers libopenblas-dev 
+sudo apt install clang cmake opencl-headers libopenblas-dev ffmpeg
 sudo apt install python3-torch python3-torchaudio python3-torchtext python3-torchvision
 sudo apt install libideep-dev libtorch-dev libonnx1
 sudo apt install pandoc build-essential git-lfs
@@ -65,11 +65,15 @@ pip install --upgrade pip
 CMAKE_ARGS="-DLLAMA_BLAS=ON" pip install llama-cpp-python 
 pip install --upgrade diffusers[torch] accelerate peft openvino optimum onnx onnxruntime nncf
 pip install opencv-python fastapi uvicorn flask
-pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas faiss-cpu fastapi_poe
+pip install climage
+pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas faiss-cpu fastapi_poe music21
 pip install fast-sentence-transformers langchain
 pip install wikipedia unstructured pypdf pdf2image pdfminer chromadb qdrant-client lark momento annoy
 pip install doc2text pypandoc pandoc
 pip install gradio ollama
+pip install music21 tensorboard 
+pip install scipy scikit-learn torch
+pip install tqdm moviepy==1.0.3 imageio>=2.5.0 ffmpeg-python audiofile>=0.0.0 opencv-python>=4.5 decorator>=4.3.0
 cd 
 curl -fsSL https://ollama.com/install.sh | sh
 ollama serve
