@@ -15,6 +15,8 @@ pkg install git proot-distro vim termux-api
 ```bash
 disname='debian'
 user='brian'
+rm -rf .shortcuts
+mkdir  .shortcuts
 echo "proot-distro login $disname"  > .shortcuts/debianai.sh
 echo  "proot-distro login debian --user $user" > .shortcuts/debian.sh
 proot-distro install debian
@@ -38,7 +40,7 @@ login $user
 ```bash
 sudo apt update && apt upgrade
 sudo apt install python3-full git curl vim wget python-is-python3 python3-pip
-sudo apt install clang cmake opencl-headers libopenblas-dev
+sudo apt install clang cmake opencl-headers libopenblas-dev 
 sudo apt install python3-torch python3-torchaudio python3-torchtext python3-torchvision
 sudo apt install libideep-dev libtorch-dev libonnx1
 sudo apt install pandoc build-essential git-lfs
@@ -63,10 +65,15 @@ pip install --upgrade pip
 CMAKE_ARGS="-DLLAMA_BLAS=ON" pip install llama-cpp-python 
 pip install --upgrade diffusers[torch] accelerate peft openvino optimum onnx onnxruntime nncf
 pip install opencv-python fastapi uvicorn flask
-pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas 
+pip install fastapi python-multipart pydantic sqlalchemy opencc-python-reimplemented pandas faiss-cpu fastapi_poe
 pip install fast-sentence-transformers langchain
 pip install wikipedia unstructured pypdf pdf2image pdfminer chromadb qdrant-client lark momento annoy
-pip install doc2text pypandoc pandoc gradio
+pip install doc2text pypandoc pandoc
+pip install gradio ollama
+cd 
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve
+ollama run deepseek-r1:1.5b-qwen-distill-q8_0
 ```
 
 This setup provides a Debian environment within Termux, with Python and various AI-related libraries installed. The environment is ready for development and running AI models, including Llama.
