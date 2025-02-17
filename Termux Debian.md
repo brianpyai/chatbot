@@ -55,7 +55,7 @@ mkdir build
 make GGML_OPENBLAS=1
 cd
 python -m venv llm
-echo "source llm/bin/activate && source .cargo/env &&  cd /sdcard/Documents/Pydroid3/llm" > llm.env
+echo "source llm/bin/activate &&  cd /sdcard/Documents/Pydroid3/llm" > llm.env
 source llm/bin/activate
 ```
 
