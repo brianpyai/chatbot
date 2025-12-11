@@ -1,278 +1,446 @@
-# ASMdynamicGradio 動態知識與工具體系完整使用指南
+# ASMdynamicGradio 動態知識與工具體系 — 完整使用說明
 
-## 📑 目錄
+## 目錄
 
 1. [系統概述](#1-系統概述)
-2. [安裝與環境配置](#2-安裝與環境配置)
-3. [CLI 命令行介面](#3-cli-命令行介面)
-4. [代碼層 API 完整指南](#4-代碼層-api-完整指南)
-5. [動態知識管理](#5-動態知識管理)
-6. [動態工具開發](#6-動態工具開發)
-7. [蒙特卡羅搜索引擎](#7-蒙特卡羅搜索引擎)
-8. [演化可視化系統](#8-演化可視化系統)
-9. [實際應用場景](#9-實際應用場景)
-10. [系統優越性分析](#10-系統優越性分析)
-11. [最佳實踐與設計模式](#11-最佳實踐與設計模式)
+2. [安裝與環境設置](#2-安裝與環境設置)
+3. [核心概念](#3-核心概念)
+4. [快速入門](#4-快速入門)
+5. [高效率內容管理](#5-高效率內容管理)
+6. [動態知識整合與查詢](#6-動態知識整合與查詢)
+7. [動態執行開發](#7-動態執行開發)
+8. [高效率查詢與整合](#8-高效率查詢與整合)
+9. [能力分發與經驗回收](#9-能力分發與經驗回收)
+10. [進階應用場景](#10-進階應用場景)
+11. [最佳實踐與性能優化](#11-最佳實踐與性能優化)
+12. [完整 API 參考](#12-完整-api-參考)
 
 ---
 
 ## 1. 系統概述
 
-### 1.1 架構圖
+ASMdynamicGradio 是一個動態知識與工具體系，提供以下核心能力：
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        ASMdynamicGradio 應用層                           │
-│  ┌─────────────────────────────────────────────────────────────────────┐│
-│  │                      Gradio Web 介面                                 ││
-│  │  📝 代碼開發 │ 📚 知識管理 │ 🔍 搜索 │ 📦 導入導出 │ 🌀 演化可視化   ││
-│  └─────────────────────────────────────────────────────────────────────┘│
-│                                    ↕                                     │
-│  ┌─────────────────────────────────────────────────────────────────────┐│
-│  │                     DynamicApp 代碼層 API                            ││
-│  │  saveCode │ getCode │ run │ importCode │ search │ evolve            ││
-│  │  saveData │ getData │ saveKnowledge │ fromFolder │ toFolder         ││
-│  └─────────────────────────────────────────────────────────────────────┘│
-│                                    ↕                                     │
-│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐ │
-│  │ MonteCarloSearch │ │ EvolutionEngine  │ │ NamespaceManager         │ │
-│  │ Engine           │ │                  │ │                          │ │
-│  └──────────────────┘ └──────────────────┘ └──────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    ↕
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    ASMsuperDynamicSystem 核心層                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│
-│  │ CodeManager │ │ DataManager │ │ NodeIO      │ │ DynamicRenderer     ││
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────────────┘│
-└─────────────────────────────────────────────────────────────────────────┘
-                                    ↕
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       ASMFileDict3 存儲層                                │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────────────┐│
-│  │ FileDict        │ │ FileSQL3        │ │ HDCVectorOps               ││
-│  │ (SQLite KV)     │ │ (Binary Store)  │ │ (向量編碼)                  ││
-│  └─────────────────┘ └─────────────────┘ └─────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 1.2 核心特性
-
-| 特性 | 說明 |
-|------|------|
-| **動態代碼管理** | 運行時保存、加載、導入、執行 Python 代碼 |
-| **動態數據管理** | 支持 JSON、NumPy、二進制等多種格式 |
-| **知識庫系統** | Markdown 格式的知識條目，支持標籤和附件 |
-| **蒙特卡羅搜索** | 創新的隨機採樣搜索算法，結果具有驚喜性 |
-| **命名空間隔離** | 層級化的命名空間管理，支持多項目 |
-| **演化可視化** | 細胞自動機演化引擎，支持多種規則 |
-| **導入導出** | 文件夾、FileDict 之間的雙向傳輸 |
-| **Web 介面** | 現代化 Gradio 界面，語法高亮編輯 |
+| 功能模組 | 說明 |
+|---------|------|
+| **動態代碼管理** | 保存、載入、執行 Python 代碼，支持熱更新 |
+| **知識庫管理** | Markdown 格式的知識條目，支持標籤和附件 |
+| **資料組管理** | 將多種類型內容（文字、圖片、代碼、HTML）組織為統一資料組 |
+| **Embedding 校準** | 將不同類型內容映射到同一語義空間，實現跨類型關聯搜索 |
+| **命名空間隔離** | 支持多項目、多環境的完全隔離 |
+| **蒙特卡羅搜索** | 具有探索性的智能搜索，每次搜索都有驚喜 |
+| **演化可視化** | 細胞自動機演化與可視化輸出 |
 
 ---
 
-## 2. 安裝與環境配置
+## 2. 安裝與環境設置
 
 ### 2.1 依賴安裝
 
 ```bash
-# 必要依賴
+# 核心依賴
 pip install numpy
 
-# Web 介面
+# Web 界面（可選）
 pip install gradio
 
-# 可選依賴（完整功能）
-pip install pillow          # 圖像處理
-pip install opencv-python   # 視頻處理
-pip install scipy           # 高級數學運算
+# 圖像處理（可選）
+pip install pillow
 ```
 
-### 2.2 文件結構
+### 2.2 必要文件
 
 確保以下文件在同一目錄：
 
 ```
-your_project/
-├── ASMdynamicGradio.py        # 應用層（本文件）
-├── ASMsuperDynamicSystem.py   # 核心系統
-├── ASMFileDict3.py            # 存儲層（可選）
-└── dynamic_app_data/          # 默認存儲目錄（自動創建）
+project/
+├── ASMdynamicGradio.py      # 主應用文件
+├── ASMsuperDynamicSystem.py # 核心系統模組
+├── ASMFileDict3.py          # 存儲引擎（可選）
+└── dynamic_app_data/        # 數據存儲目錄（自動創建）
 ```
 
-### 2.3 快速驗證安裝
-
-```python
-from ASMdynamicGradio import DynamicApp
-
-# 測試初始化
-with DynamicApp("./test_app", auto_load=False) as app:
-    app.saveCode("hello", "def main(): return 'Hello, World!'")
-    result = app.run("hello")
-    print(result.result)  # Hello, World!
-```
-
----
-
-## 3. CLI 命令行介面
-
-### 3.1 基本命令
+### 2.3 啟動方式
 
 ```bash
-# 啟動 Web 介面（默認配置）
+# 啟動 Gradio Web 界面
 python ASMdynamicGradio.py
 
-# 自定義端口
-python ASMdynamicGradio.py --port 8080
+# 指定端口和共享
+python ASMdynamicGradio.py --port 8080 --share
 
-# 創建公共分享鏈接（需要網絡）
-python ASMdynamicGradio.py --share
-
-# 指定存儲目錄和命名空間
-python ASMdynamicGradio.py --storage-dir ./my_project --namespace main
-
-# 運行完整測試套件
+# 運行測試套件
 python ASMdynamicGradio.py --test
-```
 
-### 3.2 完整參數說明
-
-| 參數 | 類型 | 默認值 | 說明 |
-|------|------|--------|------|
-| `--test` | flag | - | 運行測試套件 |
-| `--port` | int | 7860 | Gradio 服務端口 |
-| `--share` | flag | - | 創建公共分享鏈接 |
-| `--storage-dir` | str | `./dynamic_app_data` | 存儲目錄 |
-| `--namespace` | str | `default` | 默認命名空間 |
-
-### 3.3 CLI 使用範例
-
-```bash
-# 場景 1：開發環境
-python ASMdynamicGradio.py --port 7860 --storage-dir ./dev_data
-
-# 場景 2：生產環境分享
-python ASMdynamicGradio.py --port 80 --share --storage-dir ./prod_data
-
-# 場景 3：多項目隔離
-python ASMdynamicGradio.py --storage-dir ./project_alpha --namespace alpha
-python ASMdynamicGradio.py --storage-dir ./project_beta --namespace beta --port 7861
-
-# 場景 4：CI/CD 測試
-python ASMdynamicGradio.py --test && echo "Tests passed!"
+# 指定存儲目錄
+python ASMdynamicGradio.py --storage-dir ./my_data --namespace my_project
 ```
 
 ---
 
-## 4. 代碼層 API 完整指南
+## 3. 核心概念
 
-### 4.1 初始化與上下文管理
+### 3.1 命名空間 (Namespace)
+
+命名空間是邏輯隔離的容器，用於組織不同項目或模組的內容。
+
+```
+root/
+├── default/           # 默認命名空間
+├── project_a/         # 項目 A
+│   ├── utils/        # 子命名空間
+│   └── models/
+└── project_b/         # 項目 B
+```
+
+### 3.2 節點類型
+
+| 節點類型 | 說明 | 用途 |
+|---------|------|------|
+| `code` | Python 代碼 | 可執行函數、類、模組 |
+| `data` | 結構化數據 | JSON、字典、列表等 |
+| `knowledge` | 知識條目 | Markdown 文檔、教程、筆記 |
+| `file` | 二進制文件 | 圖片、視頻、PDF 等 |
+| `data_group` | 資料組 | 多類型內容的組合 |
+
+### 3.3 Embedding 校準
+
+系統使用 HDC（Hyperdimensional Computing）向量將不同類型的內容編碼到統一的語義空間：
+
+```
+文字內容  ─┐
+代碼內容  ─┼─→ HDC 編碼 ─→ 統一向量空間 ─→ 語義相似度計算
+圖片元數據 ─┘
+```
+
+---
+
+## 4. 快速入門
+
+### 4.1 基本使用模式
 
 ```python
 from ASMdynamicGradio import DynamicApp
 
-# 方式 1：標準初始化
+# 創建應用實例
 app = DynamicApp(
-    storage_dir="./my_app_data",   # 存儲目錄
-    namespace="main",               # 默認命名空間
-    auto_load=True                  # 自動加載已存儲的數據
+    storage_dir="./my_knowledge_base",
+    namespace="default",
+    auto_load=True
 )
 
-# 使用完畢後關閉
-app.close()
-
-# 方式 2：上下文管理器（推薦）
-with DynamicApp("./my_app_data", namespace="main") as app:
-    # 所有操作...
-    pass
-# 自動關閉
-
-# 方式 3：臨時/測試用途
-with DynamicApp("./temp", auto_load=False) as app:
-    # 不加載已有數據，適合測試
-    pass
-```
-
-### 4.2 代碼管理 API
-
-#### 4.2.1 保存代碼 (`saveCode`)
-
-```python
-# 基本用法
-app.saveCode("my_function", """
+# 保存代碼
+app.saveCode("hello", """
 def main():
     return "Hello, World!"
 """)
 
-# 完整用法
-node = app.saveCode(
-    name="advanced_function",
-    code="""
-import math
+# 執行代碼
+result = app.run("hello")
+print(result.result)  # 輸出: Hello, World!
 
-def calculate(x, y):
-    '''計算兩數的平方和'''
-    return math.sqrt(x**2 + y**2)
+# 保存知識
+app.saveKnowledge(
+    "python_basics",
+    "# Python 基礎\n\nPython 是一種高級編程語言...",
+    tags=["python", "教程", "入門"]
+)
 
-def main(x=3, y=4):
-    return calculate(x, y)
-""",
-    namespace="math_utils",  # 指定命名空間
-    metadata={               # 附加元數據
-        "author": "developer",
-        "version": "1.0.0",
-        "tags": ["math", "geometry"]
+# 搜索
+results = app.search("python", mode="fuzzy")
+for r in results:
+    print(f"{r.name}: {r.score:.2%}")
+
+# 關閉應用
+app.close()
+```
+
+### 4.2 使用上下文管理器
+
+```python
+from ASMdynamicGradio import DynamicApp
+
+with DynamicApp("./data") as app:
+    app.saveCode("test", "def main(): return 42")
+    result = app.run("test")
+    print(result.result)
+# 自動關閉，資源自動釋放
+```
+
+---
+
+## 5. 高效率內容管理
+
+### 5.1 代碼管理
+
+#### 保存和更新代碼
+
+```python
+# 保存新代碼
+app.saveCode("utils/string_helper", """
+def reverse_string(s: str) -> str:
+    '''反轉字符串'''
+    return s[::-1]
+
+def capitalize_words(s: str) -> str:
+    '''每個單詞首字母大寫'''
+    return ' '.join(word.capitalize() for word in s.split())
+
+def main(text: str = "hello world"):
+    return {
+        "original": text,
+        "reversed": reverse_string(text),
+        "capitalized": capitalize_words(text)
     }
+""", namespace="utils")
+
+# 獲取代碼
+code = app.getCode("string_helper", namespace="utils")
+
+# 更新代碼（保留元數據）
+app.updateCode("string_helper", new_code, namespace="utils")
+
+# 刪除代碼
+app.deleteCode("string_helper", namespace="utils")
+```
+
+#### 代碼組織最佳實踐
+
+```python
+# 按功能組織命名空間
+app.createNamespace("core", description="核心功能模組")
+app.createNamespace("utils", description="工具函數", parent="core")
+app.createNamespace("models", description="數據模型", parent="core")
+app.createNamespace("api", description="API 接口", parent="core")
+
+# 保存代碼到對應命名空間
+app.saveCode("base_model", model_code, namespace="models")
+app.saveCode("validation", validation_code, namespace="utils")
+app.saveCode("endpoints", api_code, namespace="api")
+```
+
+### 5.2 知識管理
+
+#### 創建和組織知識條目
+
+```python
+# 創建知識條目
+app.saveKnowledge(
+    name="machine_learning_intro",
+    content="""
+# 機器學習入門指南
+
+## 什麼是機器學習？
+
+機器學習是人工智能的一個分支，它使計算機能夠從數據中學習，
+而無需被明確編程。
+
+## 主要類型
+
+1. **監督學習** - 使用標記數據進行訓練
+2. **非監督學習** - 發現數據中的隱藏模式
+3. **強化學習** - 通過試錯來學習
+
+## 常見算法
+
+- 線性回歸
+- 決策樹
+- 神經網絡
+- 支持向量機
+""",
+    namespace="knowledge",
+    tags=["ML", "AI", "教程", "入門"],
+    metadata={"author": "教學團隊", "difficulty": "beginner"}
 )
 
-print(f"節點 ID: {node.node_id}")      # math_utils.advanced_function
-print(f"創建時間: {node.created}")
-```
-
-#### 4.2.2 獲取代碼 (`getCode`)
-
-```python
-# 從默認命名空間獲取
-code = app.getCode("my_function")
-if code:
-    print(code)
-
-# 從指定命名空間獲取
-code = app.getCode("advanced_function", namespace="math_utils")
-```
-
-#### 4.2.3 更新代碼 (`updateCode`)
-
-```python
-# 更新已存在的代碼（保留元數據）
-app.updateCode("my_function", """
-def main():
-    return "Updated Hello!"
-""")
-
-# 更新並修改元數據
-app.updateCode(
-    "advanced_function",
-    code="def main(): return 42",
-    namespace="math_utils",
-    metadata={"version": "2.0.0"}
+# 更新知識條目
+app.updateKnowledge(
+    "machine_learning_intro",
+    updated_content,
+    tags=["ML", "AI", "教程", "入門", "更新"]
 )
+
+# 獲取知識條目
+knowledge = app.getKnowledge("machine_learning_intro")
+print(knowledge["content"])
+print(knowledge["tags"])
 ```
 
-#### 4.2.4 執行代碼 (`run`)
+### 5.3 資料組管理
+
+資料組是將多種類型內容組織在一起的強大功能：
 
 ```python
-# 基本執行（調用 main 函數）
-result = app.run("my_function")
+# 創建資料組 - 組合多種內容類型
+data_group = app.createDataGroup(
+    name="python_tutorial_package",
+    items=[
+        # 文字說明
+        ("Python 是一種高級編程語言，以其簡潔和可讀性著稱。", "text", {"section": "intro"}),
+        
+        # 代碼示例
+        ("""
+def hello_world():
+    print("Hello, World!")
 
-if result.success:
-    print(f"結果: {result.result}")
-    print(f"執行時間: {result.execution_time_ms:.2f} ms")
-else:
-    print(f"錯誤: {result.error}")
-    print(f"詳情: {result.stderr}")
+if __name__ == "__main__":
+    hello_world()
+""", "code", {"language": "python", "level": "beginner"}),
+        
+        # Markdown 文檔
+        ("## 變量和數據類型\n\nPython 支持多種數據類型...", "markdown", {"topic": "variables"}),
+        
+        # HTML 內容
+        ("<div class='example'><code>x = 10</code></div>", "html", {"type": "interactive"}),
+        
+        # JSON 數據
+        ('{"chapter": 1, "exercises": ["ex1", "ex2"]}', "json", {"metadata": True})
+    ],
+    namespace="tutorials",
+    description="Python 入門教程完整資料包",
+    tags=["python", "教程", "入門", "完整"],
+    calibrate=True  # 啟用 Embedding 校準
+)
 
-# 帶參數執行
+# 查看資料組
+print(f"資料組: {data_group.name}")
+print(f"項目數: {len(data_group.items)}")
+print(f"已校準: {data_group.calibrated}")
+
+# 向現有資料組添加內容
+app.addToDataGroup(
+    "python_tutorial_package",
+    content="# 進階主題\n\n## 裝飾器...",
+    item_type="markdown",
+    metadata={"topic": "advanced"},
+    namespace="tutorials",
+    recalibrate=True  # 重新校準以保持語義一致性
+)
+
+# 列出所有資料組
+groups = app.listDataGroups(namespace="tutorials")
+print(f"教程資料組: {groups}")
+```
+
+### 5.4 文件管理
+
+```python
+# 上傳圖片
+with open("diagram.png", "rb") as f:
+    image_data = f.read()
+
+app.addFile(
+    "architecture_diagram.png",
+    image_data,
+    namespace="docs",
+    mime_type="image/png",
+    metadata={"description": "系統架構圖", "version": "1.0"}
+)
+
+# 獲取文件
+file_data = app.getFile("architecture_diagram.png", namespace="docs")
+
+# 獲取文件信息
+file_info = app.getFileInfo("architecture_diagram.png", namespace="docs")
+print(f"文件大小: {file_info.size} bytes")
+print(f"MIME 類型: {file_info.mime_type}")
+
+# 刪除文件
+app.deleteFile("architecture_diagram.png", namespace="docs")
+```
+
+---
+
+## 6. 動態知識整合與查詢
+
+### 6.1 Embedding 校準系統
+
+Embedding 校準是實現跨類型語義搜索的關鍵：
+
+```python
+# 批量導入並校準
+items = [
+    ("data_processor", """
+def process_data(data):
+    '''處理數據的主函數'''
+    cleaned = clean_data(data)
+    transformed = transform_data(cleaned)
+    return transformed
+""", "code", {"category": "data"}),
+    
+    ("data_processing_guide", """
+# 數據處理指南
+
+本指南介紹如何使用 process_data 函數進行數據處理...
+""", "text", {"category": "documentation"}),
+    
+    ("data_schema", {
+        "input_format": "json",
+        "output_format": "json",
+        "fields": ["id", "name", "value"]
+    }, "data", {"category": "schema"})
+]
+
+# 帶校準的批量導入
+nodes = app.batchImportWithCalibration(
+    items,
+    namespace="data_processing",
+    as_data_group=False
+)
+print(f"導入了 {len(nodes)} 個節點（已校準）")
+
+# 作為資料組導入（更緊密的關聯）
+data_group = app.batchImportWithCalibration(
+    items,
+    namespace="data_processing",
+    as_data_group=True,
+    group_name="data_processing_kit"
+)
+print(f"資料組 {data_group.name} 已創建，包含 {len(data_group.items)} 項")
+```
+
+### 6.2 命名空間校準
+
+對整個命名空間進行統一校準：
+
+```python
+# 校準命名空間中的所有內容
+result = app.calibrateNamespace("my_project")
+print(f"校準了 {result['calibrated']} 個節點")
+
+# 這使得命名空間內的所有內容都可以進行語義比較
+# 例如：代碼和文檔之間的關聯搜索
+```
+
+### 6.3 跨類型關聯搜索
+
+```python
+# 關聯搜索 - 跨越代碼、文檔、資料組
+results = app.searchRelated(
+    query="數據處理",
+    content_types=["code", "knowledge", "data_group"],
+    namespace="my_project",
+    threshold=0.5,
+    limit=20
+)
+
+for r in results:
+    print(f"\n[{r.content_type}] {r.name}")
+    print(f"  相似度: {r.score:.2%}")
+    print(f"  預覽: {r.preview[:100]}...")
+    
+    if r.related_items:
+        print(f"  關聯項目: {', '.join(r.related_items)}")
+```
+
+---
+
+## 7. 動態執行開發
+
+### 7.1 代碼執行模式
+
+```python
+# 基本執行
 app.saveCode("calculator", """
 def add(a, b):
     return a + b
@@ -280,7 +448,7 @@ def add(a, b):
 def multiply(a, b):
     return a * b
 
-def main(operation, x, y):
+def main(operation="add", x=0, y=0):
     if operation == "add":
         return add(x, y)
     elif operation == "multiply":
@@ -289,2338 +457,955 @@ def main(operation, x, y):
         raise ValueError(f"Unknown operation: {operation}")
 """)
 
+# 執行並傳遞參數
 result = app.run(
     "calculator",
-    entry_point="main",           # 指定入口函數
-    kwargs={                       # 關鍵字參數
-        "operation": "multiply",
-        "x": 6,
-        "y": 7
-    }
+    entry_point="main",
+    kwargs={"operation": "multiply", "x": 5, "y": 3}
 )
-print(result.result)  # 42
 
-# 直接調用特定函數
-result = app.run("calculator", entry_point="add", kwargs={"a": 10, "b": 20})
-print(result.result)  # 30
+if result.success:
+    print(f"結果: {result.result}")  # 輸出: 15
+    print(f"執行時間: {result.execution_time_ms:.2f} ms")
+else:
+    print(f"錯誤: {result.error}")
+    print(f"堆棧: {result.stderr}")
 ```
 
-#### 4.2.5 動態導入 (`importCode`)
+### 7.2 動態模組導入
 
 ```python
-# 保存可複用模組
-app.saveCode("utils", """
-PI = 3.14159265359
+# 保存可重用模組
+app.saveCode("math_utils", """
+import math
 
-def circle_area(radius):
-    return PI * radius ** 2
+def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
 
-def circle_circumference(radius):
-    return 2 * PI * radius
+def fibonacci(n):
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+        a, b = b, a + b
+    return b
 
-class Vector:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-    
-    def magnitude(self):
-        return (self.x**2 + self.y**2) ** 0.5
-    
-    def __repr__(self):
-        return f"Vector({self.x}, {self.y})"
-""")
+def is_prime(n):
+    if n < 2:
+        return False
+    for i in range(2, int(math.sqrt(n)) + 1):
+        if n % i == 0:
+            return False
+    return True
+""", namespace="utils")
 
 # 動態導入為模組
-utils = app.importCode("utils")
+math_utils = app.importCode("math_utils", namespace="utils")
 
-# 像使用普通模組一樣使用
-print(utils.PI)                           # 3.14159265359
-print(utils.circle_area(5))               # 78.539816...
-print(utils.circle_circumference(5))      # 31.4159...
+# 使用導入的模組
+print(math_utils.factorial(5))     # 120
+print(math_utils.fibonacci(10))    # 55
+print(math_utils.is_prime(17))     # True
 
-v = utils.Vector(3, 4)
-print(v)                                  # Vector(3, 4)
-print(v.magnitude())                      # 5.0
-```
-
-#### 4.2.6 刪除代碼 (`deleteCode`)
-
-```python
-# 刪除代碼
-if app.deleteCode("my_function"):
-    print("刪除成功")
-else:
-    print("刪除失敗（可能不存在）")
-
-# 從指定命名空間刪除
-app.deleteCode("advanced_function", namespace="math_utils")
-```
-
-### 4.3 數據管理 API
-
-#### 4.3.1 保存數據 (`saveData`)
-
-```python
-import numpy as np
-
-# JSON 數據（自動檢測類型）
-app.saveData("config", {
-    "app_name": "MyApp",
-    "settings": {"theme": "dark", "language": "zh-TW"},
-    "features": ["feature_a", "feature_b"]
-})
-
-# NumPy 數組
-app.saveData(
-    "training_data",
-    np.random.rand(1000, 784),
-    data_type="numpy",
-    compression=True  # 啟用壓縮（大數據推薦）
-)
-
-# 二進制數據
-with open("image.png", "rb") as f:
-    app.saveData("my_image", f.read(), data_type="binary")
-
-# 帶元數據
-app.saveData(
-    "experiment_result",
-    {"accuracy": 0.95, "loss": 0.05},
-    metadata={
-        "experiment_id": "exp_001",
-        "timestamp": "2024-01-01T00:00:00"
+# 在其他代碼中使用
+app.saveCode("main_program", """
+def main():
+    # 這裡可以使用 math_utils
+    from dynamic_modules import math_utils
+    return {
+        "factorial_10": math_utils.factorial(10),
+        "fib_20": math_utils.fibonacci(20),
+        "is_97_prime": math_utils.is_prime(97)
     }
-)
+""")
 ```
 
-#### 4.3.2 獲取數據 (`getData`)
+### 7.3 錯誤處理與調試
 
 ```python
-# 獲取 JSON 數據
-config = app.getData("config")
-print(config["settings"]["theme"])  # dark
+# 執行可能出錯的代碼
+result = app.run("risky_code")
 
-# 獲取 NumPy 數據
-data = app.getData("training_data")
-print(data.shape)  # (1000, 784)
-
-# 獲取二進制數據
-image_bytes = app.getData("my_image")
-```
-
-#### 4.3.3 刪除數據 (`deleteData`)
-
-```python
-app.deleteData("config")
-app.deleteData("training_data", namespace="ml_project")
-```
-
-### 4.4 知識管理 API
-
-#### 4.4.1 保存知識 (`saveKnowledge`)
-
-```python
-# 創建知識條目（Markdown 格式）
-app.saveKnowledge(
-    name="python_best_practices",
-    content="""
-# Python 最佳實踐
-
-## 1. 代碼風格
-
-遵循 PEP 8 規範：
-- 使用 4 空格縮進
-- 每行不超過 79 字符
-- 函數和類之間空兩行
-
-## 2. 命名規範
-
-```python
-# 變量和函數：snake_case
-my_variable = 42
-def my_function():
-    pass
-
-# 類：PascalCase
-class MyClass:
-    pass
-
-# 常量：UPPER_CASE
-MAX_SIZE = 100
-```
-
-## 3. 文檔字符串
-
-```python
-def calculate_area(width, height):
-    '''
-    計算矩形面積
+if not result.success:
+    # 詳細錯誤信息
+    print(f"錯誤類型: {result.error}")
+    print(f"標準錯誤輸出:\n{result.stderr}")
     
-    Args:
-        width: 寬度
-        height: 高度
-    
-    Returns:
-        面積值
-    '''
-    return width * height
-```
-""",
-    tags=["python", "coding", "best-practices"],
-    metadata={"author": "Team Lead", "reviewed": True}
-)
-```
-
-#### 4.4.2 獲取知識 (`getKnowledge`)
-
-```python
-knowledge = app.getKnowledge("python_best_practices")
-
-print(knowledge["content"])        # Markdown 內容
-print(knowledge["tags"])           # ['python', 'coding', 'best-practices']
-print(knowledge["created"])        # 創建時間
-print(knowledge["modified"])       # 修改時間
-```
-
-#### 4.4.3 更新知識 (`updateKnowledge`)
-
-```python
-# 更新內容
-app.updateKnowledge(
-    "python_best_practices",
-    content="# 更新後的內容\n\n...",
-    tags=["python", "updated"]
-)
-```
-
-### 4.5 文件管理 API
-
-#### 4.5.1 添加文件 (`addFile`)
-
-```python
-# 從文件系統添加
-with open("document.pdf", "rb") as f:
-    app.addFile("user_manual.pdf", f.read())
-
-# 添加圖片（自動檢測 MIME 類型）
-with open("logo.png", "rb") as f:
-    app.addFile(
-        "company_logo.png",
-        f.read(),
-        metadata={"description": "Company logo", "version": "2.0"}
+    # 記錄到調試日誌
+    app._log_debug(
+        "ERROR",
+        f"代碼執行失敗: risky_code",
+        details={"error": result.error},
+        exc_info=True
     )
 
-# 手動指定 MIME 類型
-app.addFile(
-    "custom_data.bin",
-    b"\x00\x01\x02\x03",
-    mime_type="application/octet-stream"
+# 查看調試日誌
+logs = app.get_debug_log(limit=50)
+for log in logs:
+    print(f"[{log['level']}] {log['timestamp']}: {log['message']}")
+
+# 清空調試日誌
+app.clear_debug_log()
+```
+
+### 7.4 執行結果處理
+
+```python
+# 執行返回複雜結果的代碼
+app.saveCode("data_analysis", """
+import numpy as np
+
+def main(data_size=100):
+    # 生成模擬數據
+    data = np.random.randn(data_size)
+    
+    return {
+        "mean": float(np.mean(data)),
+        "std": float(np.std(data)),
+        "min": float(np.min(data)),
+        "max": float(np.max(data)),
+        "percentiles": {
+            "25": float(np.percentile(data, 25)),
+            "50": float(np.percentile(data, 50)),
+            "75": float(np.percentile(data, 75))
+        },
+        "sample_size": data_size
+    }
+""")
+
+result = app.run("data_analysis", kwargs={"data_size": 1000})
+
+if result.success:
+    analysis = result.result
+    print(f"平均值: {analysis['mean']:.4f}")
+    print(f"標準差: {analysis['std']:.4f}")
+    print(f"中位數: {analysis['percentiles']['50']:.4f}")
+```
+
+---
+
+## 8. 高效率查詢與整合
+
+### 8.1 多模式搜索
+
+```python
+# 1. 精確匹配
+results = app.search("def process_data", mode="exact")
+
+# 2. 模糊匹配（默認）
+results = app.search("數據處理", mode="fuzzy", similarity_threshold=0.3)
+
+# 3. 正則表達式
+results = app.search(r"def\s+\w+_handler\(", mode="regex")
+
+# 4. 語義搜索
+results = app.search("如何處理 JSON 數據", mode="semantic", similarity_threshold=0.5)
+
+# 5. 蒙特卡羅搜索（帶探索性）
+results = app.search(
+    "機器學習算法",
+    mode="monte_carlo",
+    monte_carlo_samples=100,
+    similarity_threshold=0.3,
+    result_limit=20
 )
+
+# 6. 關聯搜索
+results = app.search("python 教程", mode="related", similarity_threshold=0.4)
 ```
 
-#### 4.5.2 獲取文件 (`getFile`)
+### 8.2 高級搜索選項
 
 ```python
-# 獲取文件數據
-pdf_data = app.getFile("user_manual.pdf")
+# 完整搜索配置
+results = app.search(
+    query="深度學習模型訓練",
+    mode="monte_carlo",
+    content_type="all",  # all, code, data, knowledge, file, data_group
+    namespace=None,      # None 表示搜索所有命名空間
+    similarity_threshold=0.3,
+    monte_carlo_samples=150,
+    fast_match_limit=2000,  # 快速匹配階段的候選數量限制
+    result_limit=30,
+    include_content=True,
+    include_data_groups=True
+)
 
-# 保存到文件系統
-with open("downloaded.pdf", "wb") as f:
-    f.write(pdf_data)
+# 處理結果
+for r in results:
+    print(f"""
+節點 ID: {r.node_id}
+名稱: {r.name}
+命名空間: {r.namespace}
+類型: {r.content_type}
+相似度: {r.score:.2%}
+預覽: {r.preview[:150]}...
+關聯項目: {r.related_items}
+元數據: {r.metadata}
+""")
 ```
 
-#### 4.5.3 獲取文件信息 (`getFileInfo`)
+### 8.3 搜索結果整合
 
 ```python
-info = app.getFileInfo("company_logo.png")
+def integrated_search(app, query, namespaces=None):
+    """整合搜索 - 從多個來源收集和排序結果"""
+    
+    all_results = []
+    
+    # 從多個命名空間搜索
+    target_namespaces = namespaces or app.listNamespaces()
+    
+    for ns in target_namespaces:
+        # 語義搜索
+        semantic_results = app.search(
+            query, mode="semantic", 
+            namespace=ns, 
+            similarity_threshold=0.4
+        )
+        
+        # 模糊搜索
+        fuzzy_results = app.search(
+            query, mode="fuzzy",
+            namespace=ns,
+            similarity_threshold=0.3
+        )
+        
+        all_results.extend(semantic_results)
+        all_results.extend(fuzzy_results)
+    
+    # 去重（按 node_id）
+    seen = set()
+    unique_results = []
+    for r in all_results:
+        if r.node_id not in seen:
+            seen.add(r.node_id)
+            unique_results.append(r)
+    
+    # 按分數排序
+    unique_results.sort(key=lambda x: x.score, reverse=True)
+    
+    return unique_results[:50]
 
-print(info.name)          # company_logo.png
-print(info.path)          # default.company_logo.png
-print(info.size)          # 文件大小（字節）
-print(info.mime_type)     # image/png
-print(info.created)       # 創建時間
-print(info.modified)      # 修改時間
+# 使用
+results = integrated_search(app, "數據處理流程")
 ```
 
-### 4.6 節點管理 API
-
-#### 4.6.1 列出節點 (`listNodes`)
+### 8.4 節點列表與過濾
 
 ```python
 # 列出所有節點
 all_nodes = app.listNodes()
-for node in all_nodes:
-    print(f"{node['type']}: {node['namespace']}.{node['name']}")
 
 # 按類型過濾
 code_nodes = app.listNodes(content_type="code")
-data_nodes = app.listNodes(content_type="data")
 knowledge_nodes = app.listNodes(content_type="knowledge")
-file_nodes = app.listNodes(content_type="file")
+data_groups = app.listNodes(content_type="data_group")
 
 # 按命名空間過濾
 project_nodes = app.listNodes(namespace="my_project")
 
 # 組合過濾
-project_codes = app.listNodes(content_type="code", namespace="my_project")
-```
+project_code = app.listNodes(content_type="code", namespace="my_project")
 
-#### 4.6.2 獲取節點詳情 (`getNode`)
-
-```python
-node = app.getNode("my_function")
-
-print(node["id"])           # default.my_function
-print(node["name"])         # my_function
-print(node["namespace"])    # default
-print(node["type"])         # code
-print(node["content"])      # 代碼內容
-print(node["metadata"])     # 元數據
-print(node["created"])      # 創建時間
-print(node["modified"])     # 修改時間
-```
-
-### 4.7 命名空間管理 API
-
-```python
-# 創建命名空間
-app.createNamespace("project_a", description="Project A workspace")
-
-# 創建子命名空間
-app.createNamespace("models", description="ML models", parent="project_a")
-app.createNamespace("data", description="Training data", parent="project_a")
-
-# 列出所有命名空間
-namespaces = app.listNamespaces()
-print(namespaces)  # ['default', 'project_a', 'models', 'data', ...]
-
-# 獲取命名空間信息
-ns_info = app.getNamespace("project_a")
-print(ns_info.name)         # project_a
-print(ns_info.description)  # Project A workspace
-print(ns_info.children)     # ['models', 'data']
-print(ns_info.parent)       # None
-```
-
-### 4.8 導入導出 API
-
-#### 4.8.1 從文件夾導入 (`fromFolder`)
-
-```python
-# 基本導入
-nodes = app.fromFolder("./my_project")
-print(f"導入了 {len(nodes)} 個節點")
-
-# 完整選項
-nodes = app.fromFolder(
-    folder_path="./my_project",
-    namespace="imported",
-    recursive=True,                    # 遞歸子目錄
-    file_patterns=["*.py", "*.json"]   # 文件模式過濾
-)
-```
-
-#### 4.8.2 導出到文件夾 (`toFolder`)
-
-```python
-# 導出整個命名空間
-count = app.toFolder("./backup", namespace="my_project")
-print(f"導出了 {count} 個文件")
-
-# 選擇性導出
-count = app.toFolder(
-    folder_path="./code_backup",
-    namespace="my_project",
-    include_codes=True,
-    include_data=False
-)
-```
-
-#### 4.8.3 FileDict 傳輸
-
-```python
-from ASMdynamicGradio import FileDict
-
-# 導出到 FileDict
-target = FileDict("./backup.db")
-count = app.toFileDict(target, namespace="my_project")
-target.close()
-
-# 從 FileDict 導入
-source = FileDict("./backup.db")
-nodes = app.fromFileDict(source, namespace="restored")
-source.close()
+# 獲取節點詳細信息
+for node in project_code[:5]:
+    detail = app.getNode(node["name"], node["namespace"])
+    print(f"""
+名稱: {detail['name']}
+類型: {detail['type']}
+創建時間: {detail['created']}
+修改時間: {detail['modified']}
+內容預覽: {str(detail['content'])[:200]}...
+""")
 ```
 
 ---
 
-## 5. 動態知識管理
+## 9. 能力分發與經驗回收
 
-### 5.1 構建企業知識庫
+### 9.1 命名空間複製（能力分發）
+
+將成熟的功能複製到新項目：
 
 ```python
-class EnterpriseKnowledgeBase:
-    """企業級知識庫系統"""
+# 場景：將核心工具庫分發到多個項目
+
+# 1. 創建核心工具庫
+app.createNamespace("core_tools", description="核心工具庫 v1.0")
+app.saveCode("logger", logger_code, namespace="core_tools")
+app.saveCode("config_parser", config_code, namespace="core_tools")
+app.saveCode("data_validator", validator_code, namespace="core_tools")
+app.createDataGroup("tool_docs", doc_items, namespace="core_tools")
+
+# 2. 分發到項目 A
+result = app.copyNamespace(
+    source="core_tools",
+    target="project_a_tools",
+    include_codes=True,
+    include_data=True,
+    include_groups=True
+)
+print(f"分發到項目 A: 代碼 {result['codes']}, 數據 {result['data']}, 資料組 {result['groups']}")
+
+# 3. 分發到項目 B（可選擇性分發）
+result = app.copyNamespace(
+    source="core_tools",
+    target="project_b_tools",
+    include_codes=True,
+    include_data=False,  # 不包含數據
+    include_groups=False  # 不包含資料組
+)
+
+# 4. 項目可以獨立修改各自的副本
+app.updateCode("logger", custom_logger_code, namespace="project_a_tools")
+```
+
+### 9.2 導出與備份（經驗回收）
+
+```python
+# 導出到文件夾
+export_count = app.toFolder(
+    folder_path="./exported_project",
+    namespace="my_project",
+    include_codes=True,
+    include_data=True
+)
+print(f"導出了 {export_count} 個節點")
+
+# 導出目錄結構
+# exported_project/
+# ├── codes/
+# │   ├── module1.py
+# │   ├── module2.py
+# │   └── utils/
+# │       └── helpers.py
+# ├── data/
+# │   ├── config.json
+# │   └── schema.yaml
+# └── knowledge/
+#     ├── readme.md
+#     └── api_docs.md
+
+# 從文件夾導入（經驗回收）
+nodes = app.fromFolder(
+    folder_path="./external_project",
+    namespace="imported_project",
+    recursive=True,
+    calibrate=True,  # 導入時進行校準
+    file_patterns=["*.py", "*.json", "*.md"]
+)
+print(f"導入了 {len(nodes)} 個節點")
+```
+
+### 9.3 跨系統遷移
+
+```python
+from ASMFileDict3 import FileDict
+
+# 導出到 FileDict（可攜式存儲）
+target_storage = FileDict("./portable_backup.db")
+count = app.toFileDict(target_storage, namespace="production")
+print(f"導出到 FileDict: {count} 個節點")
+target_storage.close()
+
+# 從 FileDict 導入
+source_storage = FileDict("./external_backup.db")
+nodes = app.fromFileDict(source_storage, namespace="imported")
+print(f"從 FileDict 導入: {len(nodes)} 個節點")
+source_storage.close()
+```
+
+### 9.4 版本管理與回滾
+
+```python
+# 創建版本快照
+def create_snapshot(app, namespace, version):
+    """創建命名空間的版本快照"""
+    snapshot_ns = f"{namespace}_v{version}"
     
-    def __init__(self, app: DynamicApp):
+    result = app.copyNamespace(
+        source=namespace,
+        target=snapshot_ns,
+        include_codes=True,
+        include_data=True,
+        include_groups=True
+    )
+    
+    # 記錄版本信息
+    app.saveData(
+        "version_info",
+        {
+            "version": version,
+            "source": namespace,
+            "created": datetime.now().isoformat(),
+            "stats": result
+        },
+        namespace=snapshot_ns
+    )
+    
+    return snapshot_ns
+
+# 回滾到特定版本
+def rollback_to_version(app, namespace, version):
+    """回滾命名空間到特定版本"""
+    snapshot_ns = f"{namespace}_v{version}"
+    
+    # 刪除當前內容
+    app.deleteNamespace(namespace, force=True)
+    
+    # 從快照恢復
+    app.renameNamespace(snapshot_ns, namespace)
+    
+    return True
+
+# 使用示例
+create_snapshot(app, "production", "1.0")
+# ... 進行開發 ...
+create_snapshot(app, "production", "1.1")
+# ... 發現問題 ...
+rollback_to_version(app, "production", "1.0")
+```
+
+---
+
+## 10. 進階應用場景
+
+### 10.1 知識庫構建與查詢系統
+
+```python
+class KnowledgeBase:
+    """知識庫管理類"""
+    
+    def __init__(self, app, namespace="knowledge_base"):
         self.app = app
-        self._setup_structure()
+        self.namespace = namespace
+        app.createNamespace(namespace, description="知識庫系統")
     
-    def _setup_structure(self):
-        """建立知識庫結構"""
-        categories = [
-            ("policies", "公司政策"),
-            ("procedures", "操作流程"),
-            ("tutorials", "教程指南"),
-            ("faqs", "常見問題"),
-            ("templates", "模板庫")
-        ]
-        
-        for name, desc in categories:
-            self.app.createNamespace(name, description=desc)
-    
-    def add_article(self, title: str, content: str, 
-                    category: str, tags: list = None):
-        """添加知識文章"""
-        # 生成唯一 ID
-        article_id = f"article_{hash(title) & 0xFFFFFF:06x}"
+    def add_article(self, title, content, category, tags=None):
+        """添加文章"""
+        name = self._normalize_name(title)
         
         self.app.saveKnowledge(
-            name=article_id,
+            name=name,
             content=content,
-            namespace=category,
+            namespace=self.namespace,
             tags=tags or [],
             metadata={
                 "title": title,
-                "views": 0,
-                "helpful_votes": 0
+                "category": category,
+                "created": datetime.now().isoformat()
             }
         )
-        return article_id
+        
+        return name
     
-    def search_articles(self, query: str, top_k: int = 10):
-        """搜索知識文章"""
+    def add_tutorial(self, name, sections):
+        """添加教程（多部分內容）"""
+        items = []
+        for i, section in enumerate(sections):
+            items.append((
+                section["content"],
+                section.get("type", "markdown"),
+                {"section": i, "title": section.get("title", f"Section {i+1}")}
+            ))
+        
+        return self.app.createDataGroup(
+            name=name,
+            items=items,
+            namespace=self.namespace,
+            description=f"教程: {name}",
+            tags=["tutorial"],
+            calibrate=True
+        )
+    
+    def search(self, query, category=None):
+        """搜索知識庫"""
         results = self.app.search(
-            query=query,
-            mode="monte_carlo",
-            content_type="knowledge",
-            monte_carlo_samples=100,
-            result_limit=top_k
-        )
-        
-        articles = []
-        for r in results:
-            knowledge = self.app.getKnowledge(r.name, r.namespace)
-            if knowledge:
-                articles.append({
-                    "id": r.node_id,
-                    "title": knowledge.get("metadata", {}).get("title", r.name),
-                    "content": knowledge["content"][:200] + "...",
-                    "score": r.score,
-                    "tags": knowledge.get("tags", [])
-                })
-        
-        return articles
-    
-    def get_article(self, article_id: str, category: str):
-        """獲取完整文章"""
-        knowledge = self.app.getKnowledge(article_id, category)
-        if knowledge:
-            # 增加閱讀計數
-            knowledge["metadata"]["views"] = \
-                knowledge.get("metadata", {}).get("views", 0) + 1
-            self.app.saveKnowledge(
-                article_id, 
-                knowledge["content"],
-                category,
-                knowledge["tags"],
-                knowledge["metadata"]
-            )
-        return knowledge
-
-# 使用示例
-with DynamicApp("./knowledge_base") as app:
-    kb = EnterpriseKnowledgeBase(app)
-    
-    # 添加文章
-    kb.add_article(
-        title="新員工入職指南",
-        content="""
-# 新員工入職指南
-
-歡迎加入我們的團隊！
-
-## 第一週任務
-
-1. 完成 HR 入職手續
-2. 設置開發環境
-3. 閱讀團隊規範文檔
-
-## 常用資源
-
-- 內部 Wiki: https://wiki.company.com
-- 代碼倉庫: https://git.company.com
-        """,
-        category="tutorials",
-        tags=["新員工", "入職", "指南"]
-    )
-    
-    # 搜索文章
-    results = kb.search_articles("新員工 入職")
-    for article in results:
-        print(f"[{article['score']:.2f}] {article['title']}")
-```
-
-### 5.2 個人筆記系統
-
-```python
-class PersonalNotes:
-    """個人筆記系統"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("notes", "我的筆記")
-        self.app.createNamespace("daily", "每日筆記", parent="notes")
-        self.app.createNamespace("projects", "項目筆記", parent="notes")
-    
-    def quick_note(self, content: str, tags: list = None):
-        """快速記錄"""
-        from datetime import datetime
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.app.saveKnowledge(
-            name=f"quick_{timestamp}",
-            content=content,
-            namespace="notes",
-            tags=tags or ["quick"]
-        )
-    
-    def daily_log(self, content: str):
-        """每日日誌"""
-        from datetime import datetime
-        
-        today = datetime.now().strftime("%Y-%m-%d")
-        
-        # 檢查今天的日誌是否存在
-        existing = self.app.getKnowledge(f"log_{today}", "daily")
-        
-        if existing:
-            # 追加內容
-            new_content = existing["content"] + f"\n\n---\n\n{content}"
-            self.app.updateKnowledge(f"log_{today}", new_content, "daily")
-        else:
-            # 創建新日誌
-            self.app.saveKnowledge(
-                name=f"log_{today}",
-                content=f"# {today} 工作日誌\n\n{content}",
-                namespace="daily",
-                tags=["daily", today]
-            )
-    
-    def search_notes(self, query: str):
-        """搜索筆記"""
-        return self.app.search(
             query,
-            mode="fuzzy",
-            content_type="knowledge",
+            mode="semantic",
+            namespace=self.namespace,
+            similarity_threshold=0.4,
             result_limit=20
         )
+        
+        if category:
+            results = [
+                r for r in results
+                if r.metadata.get("category") == category
+            ]
+        
+        return results
+    
+    def get_related_articles(self, article_name):
+        """獲取相關文章"""
+        article = self.app.getKnowledge(article_name, self.namespace)
+        if not article:
+            return []
+        
+        content = article.get("content", "")
+        results = self.app.searchRelated(
+            content[:500],
+            content_types=["knowledge", "data_group"],
+            namespace=self.namespace,
+            threshold=0.5
+        )
+        
+        # 排除自身
+        return [r for r in results if r.name != article_name]
+    
+    def _normalize_name(self, title):
+        return title.lower().replace(" ", "_").replace("/", "_")
 
 # 使用示例
-with DynamicApp("./my_notes") as app:
-    notes = PersonalNotes(app)
+kb = KnowledgeBase(app)
+
+# 添加文章
+kb.add_article(
+    "Python 列表推導式",
+    "# 列表推導式\n\n列表推導式是 Python 中創建列表的簡潔方式...",
+    category="python",
+    tags=["python", "列表", "技巧"]
+)
+
+# 添加教程
+kb.add_tutorial("Python 入門", [
+    {"title": "安裝 Python", "content": "# 安裝指南\n...", "type": "markdown"},
+    {"title": "第一個程序", "content": "print('Hello')", "type": "code"},
+    {"title": "變量", "content": "# 變量\n...", "type": "markdown"}
+])
+
+# 搜索
+results = kb.search("列表操作", category="python")
+related = kb.get_related_articles("python_列表推導式")
+```
+
+### 10.2 代碼模板系統
+
+```python
+class CodeTemplateSystem:
+    """代碼模板系統"""
     
-    # 快速筆記
-    notes.quick_note("今天學習了 Python 裝飾器", tags=["python", "learning"])
+    def __init__(self, app, namespace="templates"):
+        self.app = app
+        self.namespace = namespace
+        app.createNamespace(namespace, description="代碼模板庫")
     
-    # 每日日誌
-    notes.daily_log("完成了 API 設計文檔")
-    notes.daily_log("修復了登錄頁面的 bug")
+    def add_template(self, name, template_code, variables, description=""):
+        """添加代碼模板"""
+        self.app.saveCode(
+            name=name,
+            code=template_code,
+            namespace=self.namespace,
+            metadata={
+                "type": "template",
+                "variables": variables,
+                "description": description
+            }
+        )
     
-    # 搜索
-    results = notes.search_notes("Python")
-    for r in results:
-        print(f"📝 {r.name}: {r.preview[:50]}...")
+    def generate_code(self, template_name, **variables):
+        """根據模板生成代碼"""
+        template = self.app.getCode(template_name, self.namespace)
+        if not template:
+            raise ValueError(f"Template not found: {template_name}")
+        
+        # 簡單的變量替換
+        code = template
+        for key, value in variables.items():
+            code = code.replace(f"${{{key}}}", str(value))
+            code = code.replace(f"$${key}$$", str(value))
+        
+        return code
+    
+    def save_generated(self, name, template_name, namespace=None, **variables):
+        """生成並保存代碼"""
+        code = self.generate_code(template_name, **variables)
+        ns = namespace or "generated"
+        
+        self.app.saveCode(name, code, ns, metadata={
+            "generated_from": template_name,
+            "variables": variables
+        })
+        
+        return code
+
+# 使用示例
+templates = CodeTemplateSystem(app)
+
+# 添加 CRUD 模板
+templates.add_template(
+    "crud_handler",
+    """
+class $${model_name}$$Handler:
+    '''$${description}$$'''
+    
+    def __init__(self, db):
+        self.db = db
+        self.collection = "$${collection}$$"
+    
+    def create(self, data):
+        return self.db[self.collection].insert_one(data)
+    
+    def read(self, id):
+        return self.db[self.collection].find_one({"_id": id})
+    
+    def update(self, id, data):
+        return self.db[self.collection].update_one({"_id": id}, {"$set": data})
+    
+    def delete(self, id):
+        return self.db[self.collection].delete_one({"_id": id})
+""",
+    variables=["model_name", "description", "collection"],
+    description="CRUD 處理器模板"
+)
+
+# 生成代碼
+templates.save_generated(
+    "user_handler",
+    "crud_handler",
+    namespace="handlers",
+    model_name="User",
+    description="用戶數據處理器",
+    collection="users"
+)
+```
+
+### 10.3 演化可視化系統
+
+```python
+# 初始化演化
+app.initEvolution(mode="random")  # random, center, gradient, noise
+
+# 執行演化
+frames = app.evolve(
+    steps=200,
+    rule="diffusion",  # diffusion, conway, wave, growth, erosion
+    record_interval=10
+)
+
+print(f"生成了 {len(frames)} 幀")
+
+# 處理演化幀
+for i, frame in enumerate(frames):
+    state = frame.state  # numpy array (128x128)
+    metrics = frame.metrics
+    
+    print(f"幀 {i}: mean={metrics['mean']:.4f}, std={metrics['std']:.4f}")
+    
+    # 可以將 state 轉換為圖像
+    # rgb = (state * 255).astype(np.uint8)
+
+# 獲取當前演化狀態
+current_state = app.getEvolutionState()
+
+# 保存可視化輸出
+outputs = app.saveVisualization(prefix="evolution", effect="glow")
+print(f"保存的文件: {outputs}")
 ```
 
 ---
 
-## 6. 動態工具開發
+## 11. 最佳實踐與性能優化
 
-### 6.1 插件系統架構
+### 11.1 命名空間組織策略
+
+```
+project/
+├── core/                    # 核心功能
+│   ├── utils/              # 通用工具
+│   ├── models/             # 數據模型
+│   └── services/           # 服務層
+├── features/               # 功能模組
+│   ├── user_management/
+│   ├── data_processing/
+│   └── reporting/
+├── knowledge/              # 知識庫
+│   ├── docs/               # 文檔
+│   ├── tutorials/          # 教程
+│   └── faqs/               # 常見問題
+├── templates/              # 代碼模板
+├── tests/                  # 測試代碼
+└── snapshots/              # 版本快照
+    ├── v1.0/
+    └── v1.1/
+```
+
+### 11.2 內容組織建議
 
 ```python
-class PluginSystem:
-    """動態插件系統"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("plugins", "插件系統")
-        self.loaded_plugins = {}
-    
-    def register_plugin(self, name: str, code: str, metadata: dict = None):
-        """註冊插件"""
-        # 驗證插件結構
-        required_functions = ["initialize", "process", "cleanup"]
-        
-        for func in required_functions:
-            if f"def {func}" not in code:
-                raise ValueError(f"插件缺少必要函數: {func}")
-        
-        self.app.saveCode(
-            name=name,
-            code=code,
-            namespace="plugins",
-            metadata={
-                "type": "plugin",
-                "enabled": True,
-                **(metadata or {})
-            }
-        )
-    
-    def load_plugin(self, name: str):
-        """加載插件"""
-        module = self.app.importCode(name, "plugins")
-        
-        if module:
-            # 調用初始化
-            if hasattr(module, "initialize"):
-                module.initialize()
-            
-            self.loaded_plugins[name] = module
-            return module
-        
-        return None
-    
-    def run_plugin(self, name: str, data: any):
-        """運行插件處理"""
-        if name not in self.loaded_plugins:
-            self.load_plugin(name)
-        
-        plugin = self.loaded_plugins.get(name)
-        if plugin and hasattr(plugin, "process"):
-            return plugin.process(data)
-        
-        return None
-    
-    def unload_plugin(self, name: str):
-        """卸載插件"""
-        if name in self.loaded_plugins:
-            plugin = self.loaded_plugins[name]
-            if hasattr(plugin, "cleanup"):
-                plugin.cleanup()
-            del self.loaded_plugins[name]
+# 1. 使用一致的命名規範
+# 代碼：snake_case
+app.saveCode("user_authentication", code)
+app.saveCode("data_processor", code)
 
-# 使用示例
-with DynamicApp("./plugin_app") as app:
-    plugins = PluginSystem(app)
-    
-    # 註冊數據處理插件
-    plugins.register_plugin("json_formatter", """
-import json
+# 知識：描述性名稱
+app.saveKnowledge("getting_started_guide", content)
+app.saveKnowledge("api_reference_v2", content)
 
-def initialize():
-    print("JSON Formatter 插件已加載")
+# 資料組：功能性名稱
+app.createDataGroup("ml_training_dataset", items)
+app.createDataGroup("user_onboarding_content", items)
 
-def process(data):
-    '''格式化 JSON 數據'''
-    if isinstance(data, str):
-        data = json.loads(data)
-    return json.dumps(data, indent=2, ensure_ascii=False)
+# 2. 使用標籤進行分類
+app.saveKnowledge(
+    "python_async_guide",
+    content,
+    tags=["python", "async", "advanced", "v3.8+"]
+)
 
-def cleanup():
-    print("JSON Formatter 插件已卸載")
-""", metadata={"version": "1.0", "author": "dev"})
-    
-    # 註冊文本處理插件
-    plugins.register_plugin("text_stats", """
-import re
-
-def initialize():
-    pass
-
-def process(text):
-    '''計算文本統計'''
-    words = len(re.findall(r'\\w+', text))
-    chars = len(text)
-    lines = text.count('\\n') + 1
-    
-    return {
-        "words": words,
-        "characters": chars,
-        "lines": lines,
-        "avg_word_length": chars / words if words > 0 else 0
+# 3. 使用元數據記錄上下文
+app.saveCode(
+    "payment_processor",
+    code,
+    metadata={
+        "author": "team_a",
+        "version": "2.1",
+        "dependencies": ["stripe", "requests"],
+        "last_reviewed": "2024-01-15"
     }
-
-def cleanup():
-    pass
-""")
-    
-    # 使用插件
-    formatted = plugins.run_plugin("json_formatter", {"name": "test", "value": 42})
-    print(formatted)
-    
-    stats = plugins.run_plugin("text_stats", "Hello World!\nThis is a test.")
-    print(stats)  # {'words': 5, 'characters': 28, 'lines': 2, ...}
+)
 ```
 
-### 6.2 動態工作流引擎
+### 11.3 性能優化技巧
 
 ```python
-class WorkflowEngine:
-    """動態工作流引擎"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("workflows", "工作流定義")
-        self.app.createNamespace("tasks", "任務定義")
-    
-    def define_task(self, name: str, code: str, 
-                    inputs: list = None, outputs: list = None):
-        """定義任務"""
-        self.app.saveCode(
-            name=name,
-            code=code,
-            namespace="tasks",
-            metadata={
-                "inputs": inputs or [],
-                "outputs": outputs or [],
-                "type": "task"
-            }
-        )
-    
-    def define_workflow(self, name: str, steps: list):
-        """定義工作流"""
-        self.app.saveData(
-            name=name,
-            data={
-                "name": name,
-                "steps": steps,
-                "type": "workflow"
-            },
-            namespace="workflows"
-        )
-    
-    def execute(self, workflow_name: str, initial_context: dict = None):
-        """執行工作流"""
-        workflow = self.app.getData(workflow_name, "workflows")
-        if not workflow:
-            raise ValueError(f"工作流不存在: {workflow_name}")
-        
-        context = initial_context or {}
-        execution_log = []
-        
-        for i, step in enumerate(workflow["steps"]):
-            task_name = step["task"]
-            step_params = step.get("params", {})
-            
-            # 構建任務輸入
-            task_context = {**context, **step_params}
-            
-            # 執行任務
-            result = self.app.run(
-                task_name,
-                namespace="tasks",
-                entry_point="execute",
-                kwargs={"context": task_context}
-            )
-            
-            log_entry = {
-                "step": i + 1,
-                "task": task_name,
-                "success": result.success,
-                "time_ms": result.execution_time_ms
-            }
-            
-            if result.success:
-                # 合併輸出到上下文
-                if isinstance(result.result, dict):
-                    context.update(result.result)
-                log_entry["output"] = result.result
-            else:
-                log_entry["error"] = result.error
-                
-                # 錯誤處理策略
-                if step.get("on_error") == "stop":
-                    execution_log.append(log_entry)
-                    break
-                elif step.get("on_error") == "skip":
-                    pass  # 繼續下一步
-            
-            execution_log.append(log_entry)
-        
-        return {
-            "success": all(e["success"] for e in execution_log),
-            "context": context,
-            "log": execution_log
-        }
+# 1. 批量操作優先於單個操作
+# 不推薦
+for item in items:
+    app.saveCode(item["name"], item["code"])
 
-# 使用示例
-with DynamicApp("./workflow_app") as app:
-    engine = WorkflowEngine(app)
-    
-    # 定義任務：數據驗證
-    engine.define_task("validate", """
-def execute(context):
-    data = context.get("data", [])
-    
-    if not isinstance(data, list):
-        return {"error": "Data must be a list", "valid": False}
-    
-    if len(data) == 0:
-        return {"error": "Data is empty", "valid": False}
-    
-    return {"valid": True, "count": len(data)}
-""", inputs=["data"], outputs=["valid", "count"])
-    
-    # 定義任務：數據轉換
-    engine.define_task("transform", """
-def execute(context):
-    if not context.get("valid"):
-        return {"transformed": []}
-    
-    data = context.get("data", [])
-    multiplier = context.get("multiplier", 2)
-    
-    transformed = [x * multiplier for x in data]
-    return {"transformed": transformed}
-""", inputs=["valid", "data", "multiplier"], outputs=["transformed"])
-    
-    # 定義任務：聚合
-    engine.define_task("aggregate", """
-def execute(context):
-    data = context.get("transformed", [])
-    
-    if not data:
-        return {"result": None}
-    
-    return {
-        "result": {
-            "sum": sum(data),
-            "avg": sum(data) / len(data),
-            "min": min(data),
-            "max": max(data)
-        }
-    }
-""", inputs=["transformed"], outputs=["result"])
-    
-    # 定義工作流
-    engine.define_workflow("data_pipeline", [
-        {"task": "validate", "on_error": "stop"},
-        {"task": "transform", "params": {"multiplier": 3}},
-        {"task": "aggregate"}
-    ])
-    
-    # 執行工作流
-    result = engine.execute("data_pipeline", {
-        "data": [1, 2, 3, 4, 5]
-    })
-    
-    print(f"成功: {result['success']}")
-    print(f"結果: {result['context']['result']}")
-    # {'sum': 45, 'avg': 9.0, 'min': 3, 'max': 15}
-```
+# 推薦
+app.batchImportWithCalibration([
+    (item["name"], item["code"], "code", None)
+    for item in items
+])
 
-### 6.3 熱更新服務框架
+# 2. 合理使用校準
+# 對於需要語義搜索的內容，啟用校準
+app.createDataGroup("searchable_docs", items, calibrate=True)
 
-```python
-class HotReloadService:
-    """支持熱更新的服務框架"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("services", "服務模組")
-        self._handlers = {}
-    
-    def register_handler(self, route: str, code: str):
-        """註冊處理器（可熱更新）"""
-        handler_name = f"handler_{route.replace('/', '_')}"
-        
-        self.app.saveCode(
-            handler_name,
-            code,
-            namespace="services",
-            metadata={"route": route, "type": "handler"}
-        )
-        
-        self._handlers[route] = handler_name
-    
-    def update_handler(self, route: str, new_code: str):
-        """熱更新處理器"""
-        if route in self._handlers:
-            handler_name = self._handlers[route]
-            self.app.updateCode(handler_name, new_code, "services")
-            print(f"處理器已更新: {route}")
-    
-    def handle_request(self, route: str, request_data: dict):
-        """處理請求"""
-        if route not in self._handlers:
-            return {"error": f"Route not found: {route}", "status": 404}
-        
-        handler_name = self._handlers[route]
-        
-        result = self.app.run(
-            handler_name,
-            namespace="services",
-            entry_point="handle",
-            kwargs={"request": request_data}
-        )
-        
-        if result.success:
-            return {"data": result.result, "status": 200}
-        else:
-            return {"error": result.error, "status": 500}
-    
-    def list_routes(self):
-        """列出所有路由"""
-        return list(self._handlers.keys())
+# 對於不需要搜索的內容，跳過校準
+app.createDataGroup("raw_data", items, calibrate=False)
 
-# 使用示例
-with DynamicApp("./service_app") as app:
-    service = HotReloadService(app)
-    
-    # 註冊 API 處理器
-    service.register_handler("/api/hello", """
-def handle(request):
-    name = request.get("name", "World")
-    return {"message": f"Hello, {name}!"}
-""")
-    
-    service.register_handler("/api/calculate", """
-def handle(request):
-    a = request.get("a", 0)
-    b = request.get("b", 0)
-    op = request.get("op", "add")
-    
-    if op == "add":
-        return {"result": a + b}
-    elif op == "subtract":
-        return {"result": a - b}
-    elif op == "multiply":
-        return {"result": a * b}
-    else:
-        return {"error": f"Unknown operation: {op}"}
-""")
-    
-    # 處理請求
-    response = service.handle_request("/api/hello", {"name": "Alice"})
-    print(response)  # {'data': {'message': 'Hello, Alice!'}, 'status': 200}
-    
-    response = service.handle_request("/api/calculate", {"a": 10, "b": 5, "op": "multiply"})
-    print(response)  # {'data': {'result': 50}, 'status': 200}
-    
-    # 熱更新處理器
-    service.update_handler("/api/hello", """
-def handle(request):
-    name = request.get("name", "World")
-    greeting = request.get("greeting", "Hello")
-    return {"message": f"{greeting}, {name}!", "version": "2.0"}
-""")
-    
-    # 新處理器立即生效
-    response = service.handle_request("/api/hello", {"name": "Bob", "greeting": "Hi"})
-    print(response)  # {'data': {'message': 'Hi, Bob!', 'version': '2.0'}, 'status': 200}
-```
+# 3. 限制搜索範圍
+# 不推薦：搜索所有內容
+results = app.search("query")
 
----
-
-## 7. 蒙特卡羅搜索引擎
-
-### 7.1 搜索模式對比
-
-| 模式 | 說明 | 適用場景 | 特點 |
-|------|------|----------|------|
-| `exact` | 精確匹配 | 已知確切關鍵詞 | 速度快，結果確定 |
-| `fuzzy` | 模糊匹配 | 拼寫不確定 | 容錯性好 |
-| `regex` | 正則表達式 | 複雜模式匹配 | 靈活強大 |
-| `semantic` | 語義搜索 | 概念相似 | 理解語義 |
-| `monte_carlo` | 蒙特卡羅 | 探索性搜索 | 結果有驚喜 |
-
-### 7.2 蒙特卡羅搜索原理
-
-```python
-"""
-蒙特卡羅搜索算法流程：
-
-1. 候選收集：收集所有可能的匹配候選
-2. 初步評分：計算每個候選的基礎相似度分數
-   - Token 重疊度 (40%)
-   - 向量相似度 (60%)
-3. 概率採樣：根據分數進行加權隨機採樣
-   - 高分候選更容易被選中
-   - 探索因子確保低分候選也有機會
-4. 精細評估：對採樣結果進行更細緻的評估
-   - 位置加權（開頭出現加分）
-   - 長度懲罰（過長/過短降分）
-5. 隨機擾動：添加微小隨機性，保持驚喜
-6. 排序返回：按最終分數排序
-
-優勢：
-- 每次搜索可能返回略有不同的結果
-- 能發現傳統搜索遺漏的相關內容
-- 平衡精確性和探索性
-"""
-
-# 直接使用蒙特卡羅搜索
+# 推薦：指定命名空間和類型
 results = app.search(
-    query="機器學習 神經網絡",
-    mode="monte_carlo",
-    monte_carlo_samples=100,      # 採樣數量
-    similarity_threshold=0.3,      # 相似度閾值
-    result_limit=20                # 結果數量
+    "query",
+    namespace="my_project",
+    content_type="code",
+    fast_match_limit=500
 )
 
-for r in results:
-    print(f"[{r.score:.3f}] {r.name}: {r.preview[:50]}...")
+# 4. 使用上下文管理器確保資源釋放
+with DynamicApp("./data") as app:
+    # 操作
+    pass
+# 自動釋放資源
+
+# 5. 定期清理調試日誌
+if len(app.get_debug_log()) > 500:
+    app.clear_debug_log()
 ```
 
-### 7.3 進階搜索技巧
+### 11.4 錯誤處理模式
 
 ```python
-# 組合搜索策略
-def smart_search(app, query: str, top_k: int = 10):
-    """智能搜索：結合多種模式"""
-    
-    all_results = {}
-    
-    # 1. 先進行精確匹配
-    exact_results = app.search(query, mode="exact", result_limit=top_k)
-    for r in exact_results:
-        all_results[r.node_id] = {"result": r, "exact": True}
-    
-    # 2. 模糊匹配補充
-    fuzzy_results = app.search(query, mode="fuzzy", 
-                               similarity_threshold=0.4, result_limit=top_k)
-    for r in fuzzy_results:
-        if r.node_id not in all_results:
-            all_results[r.node_id] = {"result": r, "exact": False}
-    
-    # 3. 蒙特卡羅探索
-    mc_results = app.search(query, mode="monte_carlo",
-                            monte_carlo_samples=50, result_limit=top_k)
-    for r in mc_results:
-        if r.node_id not in all_results:
-            all_results[r.node_id] = {"result": r, "exact": False, "exploration": True}
-    
-    # 排序：精確匹配優先，然後按分數
-    sorted_results = sorted(
-        all_results.values(),
-        key=lambda x: (x.get("exact", False), x["result"].score),
-        reverse=True
-    )
-    
-    return [item["result"] for item in sorted_results[:top_k]]
-
-# 使用
-results = smart_search(app, "數據處理 函數")
-```
-
-### 7.4 搜索引擎自定義
-
-```python
-from ASMdynamicGradio import MonteCarloSearchEngine
-
-# 自定義搜索引擎
-class CustomSearchEngine(MonteCarloSearchEngine):
-    """自定義搜索引擎"""
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.custom_weights = {
-            "code": 1.2,      # 代碼權重
-            "knowledge": 1.0,  # 知識權重
-            "data": 0.8       # 數據權重
-        }
-    
-    def weighted_search(self, query: str, candidates: list, **kwargs):
-        """加權搜索"""
-        # 調整候選權重
-        weighted_candidates = []
-        for cid, content, meta in candidates:
-            content_type = meta.get("type", "data")
-            weight = self.custom_weights.get(content_type, 1.0)
-            
-            # 在內容前添加權重標記
-            weighted_content = f"{'[HIGH]' if weight > 1 else ''} {content}"
-            weighted_candidates.append((cid, weighted_content, meta))
-        
-        return self.monte_carlo_search(query, weighted_candidates, **kwargs)
-
-# 使用自定義引擎
-engine = CustomSearchEngine(dim=1024)
-```
-
----
-
-## 8. 演化可視化系統
-
-### 8.1 基本演化操作
-
-```python
-with DynamicApp("./evolution_demo") as app:
-    # 初始化演化狀態
-    app.initEvolution(mode="random")      # 隨機
-    # app.initEvolution(mode="center")    # 中心點
-    # app.initEvolution(mode="gradient")  # 漸變
-    # app.initEvolution(mode="noise")     # 噪聲
-    
-    # 獲取當前狀態
-    state = app.getEvolutionState()
-    print(f"狀態形狀: {state.shape}")      # (128, 128)
-    print(f"活躍比例: {(state > 0.5).mean():.2%}")
-    
-    # 執行演化
-    frames = app.evolve(
-        steps=100,           # 演化步數
-        rule="diffusion",    # 演化規則
-        record_interval=5    # 每 5 步記錄一幀
-    )
-    
-    print(f"記錄了 {len(frames)} 幀")
-    
-    # 檢查演化指標
-    for frame in frames[-3:]:
-        print(f"幀 {frame.frame_id}: "
-              f"mean={frame.metrics['mean']:.4f}, "
-              f"entropy={frame.metrics['entropy']:.4f}")
-```
-
-### 8.2 演化規則說明
-
-| 規則 | 說明 | 視覺效果 |
-|------|------|----------|
-| `diffusion` | 擴散規則 | 平滑過渡，像墨水擴散 |
-| `conway` | 康威生命遊戲 | 細胞生死演化 |
-| `wave` | 波動規則 | 波紋擴散效果 |
-| `growth` | 生長規則 | 強者更強，弱者衰退 |
-| `erosion` | 侵蝕規則 | 逐漸消退 |
-
-### 8.3 自定義演化規則
-
-```python
-# 通過系統底層註冊自定義規則
-def custom_rule(state, param1=0.1, param2=0.5):
-    """自定義演化規則"""
-    import numpy as np
-    
-    # 計算鄰居平均值
-    neighbors = (
-        np.roll(state, 1, axis=0) +
-        np.roll(state, -1, axis=0) +
-        np.roll(state, 1, axis=1) +
-        np.roll(state, -1, axis=1)
-    ) / 4
-    
-    # 應用自定義邏輯
-    new_state = state * (1 - param1) + neighbors * param1
-    new_state = np.where(new_state > param2, new_state * 1.1, new_state * 0.9)
-    
-    return np.clip(new_state, 0, 1).astype(np.float32)
-
-# 註冊規則
-app._system.evolution_engine.register_rule("custom", custom_rule)
-
-# 使用自定義規則
-frames = app.evolve(steps=100, rule="custom", record_interval=5)
-```
-
-### 8.4 保存可視化輸出
-
-```python
-# 執行演化並渲染
-app.initEvolution(mode="noise")
-frames = app.evolve(steps=200, rule="diffusion", record_interval=4)
-
-# 渲染幀
-app._system.renderEvolution(frames, effect="plasma")
-
-# 保存各種格式
-outputs = app.saveVisualization(
-    prefix="evolution_demo",
-    effect="glow"
-)
-
-print("生成的文件:")
-for fmt, path in outputs.items():
-    if path:
-        print(f"  {fmt}: {path}")
-# json: ./dynamic_app_data/outputs/evolution_demo.json
-# png: ./dynamic_app_data/outputs/evolution_demo.png
-# gif: ./dynamic_app_data/outputs/evolution_demo.gif
-# mp4: ./dynamic_app_data/outputs/evolution_demo.mp4
-```
-
----
-
-## 9. 實際應用場景
-
-### 9.1 機器學習實驗管理
-
-```python
-class MLExperimentManager:
-    """機器學習實驗管理器"""
-    
-    def __init__(self, app: DynamicApp, project_name: str):
-        self.app = app
-        self.project = project_name
-        
-        # 創建項目結構
-        self.app.createNamespace(project_name)
-        for sub in ["models", "data", "experiments", "metrics"]:
-            self.app.createNamespace(f"{project_name}_{sub}", parent=project_name)
-    
-    def save_model_code(self, name: str, code: str, hyperparams: dict = None):
-        """保存模型代碼"""
-        self.app.saveCode(
-            name=name,
-            code=code,
-            namespace=f"{self.project}_models",
-            metadata={"hyperparams": hyperparams or {}}
-        )
-    
-    def save_dataset(self, name: str, X, y, split: str = "train"):
-        """保存數據集"""
-        import numpy as np
-        
-        self.app.saveData(
-            f"{name}_X_{split}",
-            X,
-            namespace=f"{self.project}_data",
-            data_type="numpy",
-            compression=True
-        )
-        self.app.saveData(
-            f"{name}_y_{split}",
-            y,
-            namespace=f"{self.project}_data",
-            data_type="numpy",
-            compression=True
-        )
-    
-    def load_dataset(self, name: str, split: str = "train"):
-        """加載數據集"""
-        X = self.app.getData(f"{name}_X_{split}", f"{self.project}_data")
-        y = self.app.getData(f"{name}_y_{split}", f"{self.project}_data")
-        return X, y
-    
-    def run_experiment(self, exp_name: str, model_name: str, 
-                       dataset_name: str, config: dict = None):
-        """運行實驗"""
-        from datetime import datetime
-        
-        # 加載數據
-        X_train, y_train = self.load_dataset(dataset_name, "train")
-        X_test, y_test = self.load_dataset(dataset_name, "test")
-        
-        # 構建執行環境
-        experiment_code = f"""
-import numpy as np
-
-# 加載模型代碼
-{self.app.getCode(model_name, f"{self.project}_models")}
-
-def main(X_train, y_train, X_test, y_test, config):
-    # 訓練模型
-    model = train(X_train, y_train, config)
-    
-    # 評估模型
-    predictions = predict(model, X_test)
-    accuracy = np.mean(predictions == y_test)
-    
-    return {{
-        "accuracy": float(accuracy),
-        "predictions": predictions.tolist() if hasattr(predictions, 'tolist') else predictions
-    }}
-"""
-        
-        # 臨時保存實驗代碼
-        self.app.saveCode(f"exp_{exp_name}", experiment_code, 
-                          f"{self.project}_experiments")
-        
-        # 執行實驗
-        result = self.app.run(
-            f"exp_{exp_name}",
-            namespace=f"{self.project}_experiments",
-            kwargs={
-                "X_train": X_train,
-                "y_train": y_train,
-                "X_test": X_test,
-                "y_test": y_test,
-                "config": config or {}
-            }
-        )
-        
-        # 保存結果
-        experiment_record = {
-            "name": exp_name,
-            "model": model_name,
-            "dataset": dataset_name,
-            "config": config,
-            "timestamp": datetime.now().isoformat(),
-            "success": result.success,
-            "metrics": result.result if result.success else None,
-            "error": result.error if not result.success else None,
-            "execution_time_ms": result.execution_time_ms
-        }
-        
-        self.app.saveData(
-            f"exp_record_{exp_name}",
-            experiment_record,
-            namespace=f"{self.project}_metrics"
-        )
-        
-        return experiment_record
-    
-    def get_best_experiment(self, metric: str = "accuracy"):
-        """獲取最佳實驗"""
-        experiments = []
-        
-        for node in self.app.listNodes(namespace=f"{self.project}_metrics"):
-            if node["name"].startswith("exp_record_"):
-                record = self.app.getData(node["name"], f"{self.project}_metrics")
-                if record and record.get("success") and record.get("metrics"):
-                    experiments.append(record)
-        
-        if not experiments:
-            return None
-        
-        return max(experiments, key=lambda x: x["metrics"].get(metric, 0))
-
-# 使用示例
-with DynamicApp("./ml_experiments") as app:
-    manager = MLExperimentManager(app, "image_classification")
-    
-    # 保存模型代碼
-    manager.save_model_code("simple_classifier", """
-import numpy as np
-
-def train(X, y, config):
-    '''簡單的線性分類器'''
-    lr = config.get("learning_rate", 0.01)
-    epochs = config.get("epochs", 100)
-    
-    n_features = X.shape[1]
-    n_classes = len(np.unique(y))
-    
-    W = np.random.randn(n_features, n_classes) * 0.01
-    b = np.zeros(n_classes)
-    
-    for _ in range(epochs):
-        scores = X @ W + b
-        exp_scores = np.exp(scores - scores.max(axis=1, keepdims=True))
-        probs = exp_scores / exp_scores.sum(axis=1, keepdims=True)
-        
-        dscores = probs.copy()
-        dscores[range(len(y)), y] -= 1
-        dscores /= len(y)
-        
-        W -= lr * (X.T @ dscores)
-        b -= lr * dscores.sum(axis=0)
-    
-    return {"W": W, "b": b}
-
-def predict(model, X):
-    scores = X @ model["W"] + model["b"]
-    return np.argmax(scores, axis=1)
-""", hyperparams={"learning_rate": 0.01, "epochs": 100})
-    
-    # 保存模擬數據集
-    import numpy as np
-    np.random.seed(42)
-    X_train = np.random.randn(100, 10)
-    y_train = np.random.randint(0, 3, 100)
-    X_test = np.random.randn(20, 10)
-    y_test = np.random.randint(0, 3, 20)
-    
-    manager.save_dataset("synthetic", X_train, y_train, "train")
-    manager.save_dataset("synthetic", X_test, y_test, "test")
-    
-    # 運行實驗
-    result = manager.run_experiment(
-        "exp_001",
-        model_name="simple_classifier",
-        dataset_name="synthetic",
-        config={"learning_rate": 0.1, "epochs": 200}
-    )
-    
-    print(f"實驗結果: {result['metrics']}")
-```
-
-### 9.2 API 網關模擬
-
-```python
-class APIGateway:
-    """API 網關模擬器"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("api", "API 配置")
-        self.app.createNamespace("handlers", "請求處理器")
-        self.app.createNamespace("middleware", "中間件")
-        self.routes = {}
-    
-    def register_route(self, method: str, path: str, handler_code: str):
-        """註冊路由"""
-        route_key = f"{method}:{path}"
-        handler_name = f"handler_{method}_{path.replace('/', '_')}"
-        
-        self.app.saveCode(handler_name, handler_code, "handlers")
-        self.routes[route_key] = handler_name
-        
-        # 保存路由配置
-        self.app.saveData("routes", self.routes, "api")
-    
-    def add_middleware(self, name: str, code: str, priority: int = 0):
-        """添加中間件"""
-        self.app.saveCode(name, code, "middleware", 
-                          metadata={"priority": priority})
-    
-    def request(self, method: str, path: str, 
-                headers: dict = None, body: dict = None):
-        """處理請求"""
-        import time
-        
-        request_data = {
-            "method": method,
-            "path": path,
-            "headers": headers or {},
-            "body": body or {},
-            "timestamp": time.time()
-        }
-        
-        # 執行中間件（前置）
-        middleware_nodes = self.app.listNodes(
-            content_type="code", 
-            namespace="middleware"
-        )
-        
-        for mw in sorted(middleware_nodes, 
-                        key=lambda x: x.get("metadata", {}).get("priority", 0)):
-            result = self.app.run(
-                mw["name"],
-                namespace="middleware",
-                entry_point="before_request",
-                kwargs={"request": request_data}
-            )
-            
-            if result.success and isinstance(result.result, dict):
-                request_data.update(result.result)
-        
-        # 查找路由
-        route_key = f"{method}:{path}"
-        
-        if route_key not in self.routes:
+def safe_execute(app, code_name, namespace=None, **kwargs):
+    """安全執行代碼，包含完整錯誤處理"""
+    try:
+        # 檢查代碼是否存在
+        code = app.getCode(code_name, namespace)
+        if code is None:
             return {
-                "status": 404,
-                "body": {"error": f"Route not found: {path}"}
+                "success": False,
+                "error": f"Code not found: {code_name}",
+                "result": None
             }
         
-        handler_name = self.routes[route_key]
-        
-        # 執行處理器
-        result = self.app.run(
-            handler_name,
-            namespace="handlers",
-            entry_point="handle",
-            kwargs={"request": request_data}
-        )
+        # 執行代碼
+        result = app.run(code_name, namespace, **kwargs)
         
         if result.success:
-            response = {
-                "status": 200,
-                "body": result.result,
+            return {
+                "success": True,
+                "result": result.result,
                 "execution_time_ms": result.execution_time_ms
             }
         else:
-            response = {
-                "status": 500,
-                "body": {"error": result.error}
-            }
-        
-        return response
-
-# 使用示例
-with DynamicApp("./api_gateway") as app:
-    gateway = APIGateway(app)
-    
-    # 添加認證中間件
-    gateway.add_middleware("auth", """
-def before_request(request):
-    auth_header = request.get("headers", {}).get("Authorization", "")
-    
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-        # 簡化的 token 驗證
-        request["authenticated"] = len(token) > 10
-        request["user_id"] = "user_123" if request["authenticated"] else None
-    else:
-        request["authenticated"] = False
-    
-    return request
-""", priority=1)
-    
-    # 註冊 API 路由
-    gateway.register_route("GET", "/users", """
-def handle(request):
-    if not request.get("authenticated"):
-        return {"error": "Unauthorized"}
-    
-    return {
-        "users": [
-            {"id": 1, "name": "Alice"},
-            {"id": 2, "name": "Bob"}
-        ]
-    }
-""")
-    
-    gateway.register_route("POST", "/users", """
-def handle(request):
-    if not request.get("authenticated"):
-        return {"error": "Unauthorized"}
-    
-    body = request.get("body", {})
-    name = body.get("name", "Unknown")
-    
-    return {
-        "created": True,
-        "user": {"id": 3, "name": name}
-    }
-""")
-    
-    # 測試請求
-    # 無認證
-    response = gateway.request("GET", "/users")
-    print(response)  # {'status': 200, 'body': {'error': 'Unauthorized'}, ...}
-    
-    # 有認證
-    response = gateway.request(
-        "GET", "/users",
-        headers={"Authorization": "Bearer valid_token_12345"}
-    )
-    print(response)  # {'status': 200, 'body': {'users': [...]}, ...}
-    
-    # POST 請求
-    response = gateway.request(
-        "POST", "/users",
-        headers={"Authorization": "Bearer valid_token_12345"},
-        body={"name": "Charlie"}
-    )
-    print(response)  # {'status': 200, 'body': {'created': True, 'user': {...}}, ...}
-```
-
-### 9.3 配置管理中心
-
-```python
-class ConfigCenter:
-    """配置管理中心"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("configs", "配置中心")
-        
-        # 創建環境
-        for env in ["dev", "staging", "prod"]:
-            self.app.createNamespace(f"configs_{env}", parent="configs")
-        
-        self._watchers = {}
-    
-    def set_config(self, key: str, value: any, env: str = "dev"):
-        """設置配置"""
-        from datetime import datetime
-        
-        config_data = {
-            "value": value,
-            "updated_at": datetime.now().isoformat(),
-            "version": self._get_version(key, env) + 1
-        }
-        
-        self.app.saveData(key, config_data, f"configs_{env}")
-        
-        # 通知監聽器
-        if key in self._watchers:
-            for callback in self._watchers[key]:
-                callback(key, value, env)
-    
-    def get_config(self, key: str, env: str = "dev", default: any = None):
-        """獲取配置"""
-        data = self.app.getData(key, f"configs_{env}")
-        
-        if data:
-            return data["value"]
-        
-        return default
-    
-    def _get_version(self, key: str, env: str) -> int:
-        """獲取配置版本"""
-        data = self.app.getData(key, f"configs_{env}")
-        return data.get("version", 0) if data else 0
-    
-    def watch(self, key: str, callback: callable):
-        """監聽配置變更"""
-        if key not in self._watchers:
-            self._watchers[key] = []
-        self._watchers[key].append(callback)
-    
-    def get_all_configs(self, env: str = "dev") -> dict:
-        """獲取所有配置"""
-        configs = {}
-        
-        for node in self.app.listNodes(namespace=f"configs_{env}"):
-            data = self.app.getData(node["name"], f"configs_{env}")
-            if data:
-                configs[node["name"]] = data["value"]
-        
-        return configs
-    
-    def compare_envs(self, env1: str, env2: str) -> dict:
-        """比較兩個環境的配置"""
-        configs1 = self.get_all_configs(env1)
-        configs2 = self.get_all_configs(env2)
-        
-        all_keys = set(configs1.keys()) | set(configs2.keys())
-        
-        diff = {}
-        for key in all_keys:
-            v1 = configs1.get(key)
-            v2 = configs2.get(key)
-            
-            if v1 != v2:
-                diff[key] = {"env1": v1, "env2": v2}
-        
-        return diff
-    
-    def copy_to_env(self, from_env: str, to_env: str, keys: list = None):
-        """複製配置到另一個環境"""
-        configs = self.get_all_configs(from_env)
-        
-        if keys:
-            configs = {k: v for k, v in configs.items() if k in keys}
-        
-        for key, value in configs.items():
-            self.set_config(key, value, to_env)
-        
-        return len(configs)
-
-# 使用示例
-with DynamicApp("./config_center") as app:
-    config = ConfigCenter(app)
-    
-    # 設置開發環境配置
-    config.set_config("database.host", "localhost", "dev")
-    config.set_config("database.port", 5432, "dev")
-    config.set_config("cache.enabled", True, "dev")
-    config.set_config("log.level", "DEBUG", "dev")
-    
-    # 設置生產環境配置
-    config.set_config("database.host", "db.production.com", "prod")
-    config.set_config("database.port", 5432, "prod")
-    config.set_config("cache.enabled", True, "prod")
-    config.set_config("log.level", "ERROR", "prod")
-    
-    # 獲取配置
-    host = config.get_config("database.host", "dev")
-    print(f"Dev Database Host: {host}")  # localhost
-    
-    host = config.get_config("database.host", "prod")
-    print(f"Prod Database Host: {host}")  # db.production.com
-    
-    # 比較環境
-    diff = config.compare_envs("dev", "prod")
-    print("環境差異:")
-    for key, values in diff.items():
-        print(f"  {key}: dev={values['env1']} prod={values['env2']}")
-    
-    # 監聽變更
-    def on_config_change(key, value, env):
-        print(f"配置變更: {key} = {value} ({env})")
-    
-    config.watch("database.host", on_config_change)
-    config.set_config("database.host", "new-host.dev", "dev")
-    # 輸出: 配置變更: database.host = new-host.dev (dev)
-```
-
----
-
-## 10. 系統優越性分析
-
-### 10.1 與傳統方案對比
-
-#### 10.1.1 代碼管理
-
-| 特性 | 傳統文件系統 | Git 版本控制 | ASMdynamicGradio |
-|------|-------------|--------------|------------------|
-| **動態加載** | ❌ 需重啟 | ❌ 需重啟 | ✅ 即時生效 |
-| **熱更新** | ❌ | ❌ | ✅ 運行時更新 |
-| **統一存儲** | ❌ 分散 | ⚠️ 需倉庫 | ✅ 單一數據庫 |
-| **向量搜索** | ❌ | ❌ | ✅ 語義搜索 |
-| **執行追蹤** | ❌ | ❌ | ✅ 內建記錄 |
-
-```python
-# 傳統方式：修改代碼需要重啟
-# 1. 編輯文件
-# 2. 保存
-# 3. 重啟應用
-# 4. 測試
-
-# ASMdynamicGradio：即時生效
-app.updateCode("my_handler", new_code)
-result = app.run("my_handler")  # 立即使用新代碼
-```
-
-#### 10.1.2 數據管理
-
-| 特性 | 文件 + 數據庫 | ORM 框架 | ASMdynamicGradio |
-|------|-------------|----------|------------------|
-| **多格式支持** | ⚠️ 需適配 | ⚠️ 限 SQL | ✅ JSON/NumPy/二進制 |
-| **自動壓縮** | ❌ | ❌ | ✅ 可選壓縮 |
-| **向量索引** | ❌ | ❌ | ✅ HDC 向量 |
-| **統一 API** | ❌ | ⚠️ | ✅ 一致接口 |
-
-```python
-# 傳統方式：不同類型需要不同處理
-import json
-import numpy as np
-import pickle
-
-# 保存 JSON
-with open("config.json", "w") as f:
-    json.dump(config, f)
-
-# 保存 NumPy
-np.save("data.npy", array)
-
-# 保存任意對象
-with open("model.pkl", "wb") as f:
-    pickle.dump(model, f)
-
-# ASMdynamicGradio：統一接口
-app.saveData("config", config)      # 自動識別為 JSON
-app.saveData("data", array)          # 自動識別為 NumPy
-app.saveData("model", model)         # 自動序列化
-```
-
-#### 10.1.3 搜索能力
-
-| 特性 | 文件名搜索 | 全文搜索引擎 | ASMdynamicGradio |
-|------|-----------|-------------|------------------|
-| **模糊匹配** | ⚠️ 有限 | ✅ | ✅ |
-| **語義搜索** | ❌ | ⚠️ 需配置 | ✅ 內建 |
-| **蒙特卡羅** | ❌ | ❌ | ✅ 獨特優勢 |
-| **即時索引** | ❌ | ⚠️ 需重建 | ✅ 自動 |
-
-### 10.2 開發效率提升
-
-#### 10.2.1 快速原型開發
-
-```python
-# 場景：快速實現一個數據處理管道
-
-with DynamicApp("./prototype") as app:
-    # 5 分鐘內完成原型
-    
-    # 第 1 步：定義數據清洗邏輯
-    app.saveCode("cleaner", """
-def main(data):
-    # 移除空值
-    data = [x for x in data if x is not None]
-    # 去重
-    data = list(set(data))
-    return sorted(data)
-""")
-    
-    # 第 2 步：定義轉換邏輯
-    app.saveCode("transformer", """
-def main(data):
-    return [x * 2 + 1 for x in data]
-""")
-    
-    # 第 3 步：定義聚合邏輯
-    app.saveCode("aggregator", """
-import statistics
-
-def main(data):
-    return {
-        "count": len(data),
-        "sum": sum(data),
-        "mean": statistics.mean(data),
-        "median": statistics.median(data)
-    }
-""")
-    
-    # 第 4 步：組合執行
-    raw_data = [1, 2, 2, None, 3, 4, None, 5]
-    
-    cleaned = app.run("cleaner", kwargs={"data": raw_data}).result
-    transformed = app.run("transformer", kwargs={"data": cleaned}).result
-    result = app.run("aggregator", kwargs={"data": transformed}).result
-    
-    print(result)
-    # {'count': 5, 'sum': 35, 'mean': 7.0, 'median': 7}
-    
-    # 需要修改？直接更新，無需重啟
-    app.updateCode("transformer", """
-def main(data):
-    return [x ** 2 for x in data]  # 改為平方
-""")
-    
-    # 重新執行
-    transformed = app.run("transformer", kwargs={"data": cleaned}).result
-    result = app.run("aggregator", kwargs={"data": transformed}).result
-    print(result)
-    # {'count': 5, 'sum': 55, 'mean': 11.0, 'median': 9}
-```
-
-#### 10.2.2 A/B 測試
-
-```python
-# 場景：同時測試多個算法版本
-
-with DynamicApp("./ab_test") as app:
-    # 版本 A
-    app.saveCode("algorithm_v1", """
-def main(x):
-    return x * 2
-""")
-    
-    # 版本 B
-    app.saveCode("algorithm_v2", """
-def main(x):
-    return x ** 2
-""")
-    
-    # 版本 C
-    app.saveCode("algorithm_v3", """
-import math
-def main(x):
-    return math.log(x + 1) * 10
-""")
-    
-    # 對比測試
-    test_data = [1, 5, 10, 50, 100]
-    
-    for version in ["algorithm_v1", "algorithm_v2", "algorithm_v3"]:
-        results = []
-        for x in test_data:
-            result = app.run(version, kwargs={"x": x})
-            results.append(result.result)
-        
-        print(f"{version}: {results}")
-    
-    # 動態選擇最佳版本
-    def select_algorithm(condition):
-        if condition == "linear":
-            return "algorithm_v1"
-        elif condition == "quadratic":
-            return "algorithm_v2"
-        else:
-            return "algorithm_v3"
-    
-    # 運行時切換
-    algo = select_algorithm("quadratic")
-    result = app.run(algo, kwargs={"x": 10})
-    print(f"使用 {algo}: {result.result}")
-```
-
-#### 10.2.3 調試與問題排查
-
-```python
-with DynamicApp("./debug_demo") as app:
-    # 保存可能有問題的代碼
-    app.saveCode("buggy_code", """
-def main(data):
-    total = 0
-    for item in data:
-        total += item["value"]  # 可能 KeyError
-    return total
-""")
-    
-    # 測試正常情況
-    result = app.run("buggy_code", kwargs={
-        "data": [{"value": 1}, {"value": 2}]
-    })
-    print(f"正常: {result.result}")  # 3
-    
-    # 測試異常情況
-    result = app.run("buggy_code", kwargs={
-        "data": [{"value": 1}, {"amount": 2}]  # 缺少 value
-    })
-    
-    if not result.success:
-        print(f"錯誤: {result.error}")
-        print(f"詳情: {result.stderr}")
-    
-    # 查看調試日誌
-    logs = app.get_debug_log(limit=10)
-    for log in logs:
-        print(f"[{log['level']}] {log['message']}")
-    
-    # 修復代碼
-    app.updateCode("buggy_code", """
-def main(data):
-    total = 0
-    for item in data:
-        total += item.get("value", 0)  # 使用 get 避免 KeyError
-    return total
-""")
-    
-    # 驗證修復
-    result = app.run("buggy_code", kwargs={
-        "data": [{"value": 1}, {"amount": 2}]
-    })
-    print(f"修復後: {result.result}")  # 1
-```
-
-### 10.3 核心優勢總結
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    ASMdynamicGradio 核心優勢                         │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  🚀 動態執行                                                         │
-│     • 運行時加載、更新、執行代碼                                      │
-│     • 無需重啟即可生效                                                │
-│     • 支持熱更新和熱修復                                              │
-│                                                                      │
-│  📦 統一存儲                                                         │
-│     • 代碼、數據、知識統一管理                                        │
-│     • 多格式自動處理（JSON/NumPy/二進制）                             │
-│     • 內建壓縮和向量索引                                              │
-│                                                                      │
-│  🔍 智能搜索                                                         │
-│     • 五種搜索模式（精確/模糊/正則/語義/蒙特卡羅）                     │
-│     • HDC 向量編碼實現語義理解                                        │
-│     • 蒙特卡羅搜索帶來探索性結果                                      │
-│                                                                      │
-│  🌳 命名空間隔離                                                     │
-│     • 層級化的項目組織                                                │
-│     • 多環境/多租戶支持                                               │
-│     • 靈活的導入導出                                                  │
-│                                                                      │
-│  🌐 Web 介面                                                         │
-│     • 現代化 Gradio 界面                                              │
-│     • 語法高亮代碼編輯                                                │
-│     • 實時執行和調試                                                  │
-│                                                                      │
-│  🌀 演化可視化                                                       │
-│     • 細胞自動機引擎                                                  │
-│     • 多種演化規則                                                    │
-│     • PNG/GIF/MP4 輸出                                               │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 11. 最佳實踐與設計模式
-
-### 11.1 項目結構規範
-
-```python
-def setup_project_structure(app: DynamicApp, project_name: str):
-    """建立標準項目結構"""
-    
-    # 頂層項目命名空間
-    app.createNamespace(project_name, f"Project: {project_name}")
-    
-    # 標準子命名空間
-    structure = {
-        "core": "核心業務邏輯",
-        "utils": "工具函數",
-        "models": "數據模型",
-        "handlers": "請求處理器",
-        "tasks": "後台任務",
-        "tests": "測試代碼",
-        "configs": "配置數據",
-        "docs": "文檔知識"
-    }
-    
-    for name, desc in structure.items():
-        app.createNamespace(
-            f"{project_name}_{name}",
-            description=desc,
-            parent=project_name
-        )
-    
-    # 創建項目說明
-    app.saveKnowledge(
-        "README",
-        f"""
-# {project_name}
-
-## 項目結構
-
-- `core/`: 核心業務邏輯
-- `utils/`: 工具函數
-- `models/`: 數據模型
-- `handlers/`: 請求處理器
-- `tasks/`: 後台任務
-- `tests/`: 測試代碼
-- `configs/`: 配置數據
-- `docs/`: 文檔知識
-
-## 快速開始
-
-```python
-from ASMdynamicGradio import DynamicApp
-
-with DynamicApp("./project_data") as app:
-    # 導入核心模組
-    core = app.importCode("main", "{project_name}_core")
-    
-    # 執行主函數
-    result = core.run()
-```
-        """,
-        namespace=f"{project_name}_docs",
-        tags=["readme", "documentation"]
-    )
-    
-    return structure
-
-# 使用
-with DynamicApp("./my_project") as app:
-    structure = setup_project_structure(app, "my_app")
-    print("項目結構已創建:", list(structure.keys()))
-```
-
-### 11.2 錯誤處理模式
-
-```python
-from contextlib import contextmanager
-from dataclasses import dataclass
-from typing import Optional
-
-@dataclass
-class OperationResult:
-    """操作結果封裝"""
-    success: bool
-    data: Optional[any] = None
-    error: Optional[str] = None
-    details: Optional[dict] = None
-
-@contextmanager
-def safe_operation(app: DynamicApp, operation_name: str):
-    """安全操作上下文"""
-    import time
-    
-    start_time = time.time()
-    result = OperationResult(success=True)
-    
-    try:
-        yield result
-    except Exception as e:
-        result.success = False
-        result.error = str(e)
-        result.details = {"traceback": traceback.format_exc()}
-        
-        # 記錄錯誤
-        app._log_debug("ERROR", f"{operation_name} 失敗: {e}", exc_info=True)
-    finally:
-        duration = time.time() - start_time
-        
-        # 記錄操作日誌
-        app.saveData(
-            f"op_log_{int(time.time() * 1000)}",
-            {
-                "operation": operation_name,
-                "success": result.success,
-                "duration_ms": duration * 1000,
+            return {
+                "success": False,
                 "error": result.error,
-                "timestamp": datetime.now().isoformat()
-            },
-            namespace="system",
-            metadata={"type": "operation_log"}
-        )
-
-# 使用
-with DynamicApp("./app") as app:
-    with safe_operation(app, "save_critical_data") as result:
-        app.saveData("critical", {"important": "data"})
-        result.data = "保存成功"
+                "stderr": result.stderr,
+                "result": None
+            }
     
-    if result.success:
-        print(result.data)
-    else:
-        print(f"操作失敗: {result.error}")
-```
-
-### 11.3 測試模式
-
-```python
-class DynamicTestRunner:
-    """動態測試運行器"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self.app.createNamespace("tests", "測試套件")
-        self.results = []
-    
-    def add_test(self, name: str, test_code: str):
-        """添加測試"""
-        wrapped_code = f"""
-def test():
-    try:
-        # 用戶測試代碼
-{chr(10).join('        ' + line for line in test_code.split(chr(10)))}
-        return {{"passed": True}}
-    except AssertionError as e:
-        return {{"passed": False, "error": str(e)}}
     except Exception as e:
-        return {{"passed": False, "error": f"Unexpected error: {{e}}"}}
-"""
-        self.app.saveCode(name, wrapped_code, "tests")
-    
-    def run_all(self) -> dict:
-        """運行所有測試"""
-        self.results = []
-        
-        tests = self.app.listNodes(content_type="code", namespace="tests")
-        
-        for test in tests:
-            result = self.app.run(test["name"], "tests", entry_point="test")
-            
-            test_result = {
-                "name": test["name"],
-                "passed": False,
-                "error": None,
-                "time_ms": result.execution_time_ms
-            }
-            
-            if result.success and isinstance(result.result, dict):
-                test_result["passed"] = result.result.get("passed", False)
-                test_result["error"] = result.result.get("error")
-            else:
-                test_result["error"] = result.error
-            
-            self.results.append(test_result)
-        
-        passed = sum(1 for r in self.results if r["passed"])
-        failed = len(self.results) - passed
-        
         return {
-            "total": len(self.results),
-            "passed": passed,
-            "failed": failed,
-            "results": self.results
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "result": None
         }
-    
-    def report(self) -> str:
-        """生成測試報告"""
-        report = "# 測試報告\n\n"
-        
-        passed = sum(1 for r in self.results if r["passed"])
-        total = len(self.results)
-        
-        report += f"**結果**: {passed}/{total} 通過\n\n"
-        report += "## 詳細結果\n\n"
-        
-        for r in self.results:
-            icon = "✅" if r["passed"] else "❌"
-            report += f"- {icon} `{r['name']}` ({r['time_ms']:.2f}ms)"
-            if r["error"]:
-                report += f"\n  - 錯誤: {r['error']}"
-            report += "\n"
-        
-        return report
 
 # 使用
-with DynamicApp("./test_app") as app:
-    runner = DynamicTestRunner(app)
-    
-    # 添加測試
-    runner.add_test("test_addition", """
-result = 1 + 1
-assert result == 2, f"Expected 2, got {result}"
-""")
-    
-    runner.add_test("test_string", """
-s = "hello"
-assert len(s) == 5
-assert s.upper() == "HELLO"
-""")
-    
-    runner.add_test("test_failing", """
-assert 1 == 2, "This should fail"
-""")
-    
-    # 運行測試
-    summary = runner.run_all()
-    print(f"通過: {summary['passed']}/{summary['total']}")
-    
-    # 生成報告
-    report = runner.report()
-    print(report)
-```
-
-### 11.4 性能優化
-
-```python
-# 1. 批量操作
-def batch_save_codes(app: DynamicApp, codes: dict, namespace: str):
-    """批量保存代碼"""
-    nodes = []
-    for name, code in codes.items():
-        node = app.saveCode(name, code, namespace)
-        nodes.append(node)
-    return nodes
-
-# 2. 延遲加載
-class LazyModule:
-    """延遲加載的模組"""
-    
-    def __init__(self, app: DynamicApp, name: str, namespace: str):
-        self._app = app
-        self._name = name
-        self._namespace = namespace
-        self._module = None
-    
-    def __getattr__(self, attr):
-        if self._module is None:
-            self._module = self._app.importCode(self._name, self._namespace)
-        return getattr(self._module, attr)
-
-# 3. 結果緩存
-from functools import lru_cache
-
-class CachedRunner:
-    """帶緩存的執行器"""
-    
-    def __init__(self, app: DynamicApp):
-        self.app = app
-        self._cache = {}
-    
-    def run_cached(self, name: str, namespace: str, **kwargs):
-        """緩存執行結果"""
-        # 生成緩存鍵
-        cache_key = f"{namespace}.{name}:{hash(frozenset(kwargs.items()))}"
-        
-        if cache_key in self._cache:
-            return self._cache[cache_key]
-        
-        result = self.app.run(name, namespace, kwargs=kwargs)
-        
-        if result.success:
-            self._cache[cache_key] = result
-        
-        return result
-    
-    def invalidate(self, pattern: str = None):
-        """清除緩存"""
-        if pattern is None:
-            self._cache.clear()
-        else:
-            self._cache = {
-                k: v for k, v in self._cache.items()
-                if pattern not in k
-            }
-
-# 4. 壓縮大數據
-def save_large_data(app: DynamicApp, name: str, data, namespace: str):
-    """自動壓縮大數據"""
-    import sys
-    
-    size = sys.getsizeof(data)
-    compression = size > 10 * 1024  # 超過 10KB 啟用壓縮
-    
-    return app.saveData(
-        name, data, namespace,
-        compression=compression
-    )
+result = safe_execute(app, "my_function", namespace="utils", x=10)
+if result["success"]:
+    print(f"Result: {result['result']}")
+else:
+    print(f"Error: {result['error']}")
 ```
 
 ---
 
-## 快速參考卡
+## 12. 完整 API 參考
 
+### 12.1 DynamicApp 類
+
+#### 初始化
+
+```python
+app = DynamicApp(
+    storage_dir: str = "./dynamic_app_data",  # 存儲目錄
+    namespace: str = "default",               # 默認命名空間
+    auto_load: bool = True                    # 是否自動加載現有數據
+)
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    ASMdynamicGradio 快速參考                         │
-├─────────────────────────────────────────────────────────────────────┤
-│ CLI 命令                                                             │
-│   python ASMdynamicGradio.py               啟動 Web 介面            │
-│   python ASMdynamicGradio.py --test        運行測試                 │
-│   python ASMdynamicGradio.py --port 8080   自定義端口               │
-│   python ASMdynamicGradio.py --share       公共分享                 │
-├─────────────────────────────────────────────────────────────────────┤
-│ 代碼管理                                                             │
-│   app.saveCode(name, code, ns)             保存代碼                 │
-│   app.getCode(name, ns)                    獲取代碼                 │
-│   app.updateCode(name, code, ns)           更新代碼                 │
-│   app.deleteCode(name, ns)                 刪除代碼                 │
-│   app.importCode(name, ns)                 導入為模組               │
-│   app.run(name, ns, entry_point, kwargs)   執行代碼                 │
-├─────────────────────────────────────────────────────────────────────┤
-│ 數據管理                                                             │
-│   app.saveData(name, data, ns)             保存數據                 │
-│   app.getData(name, ns)                    獲取數據                 │
-│   app.deleteData(name, ns)                 刪除數據                 │
-├─────────────────────────────────────────────────────────────────────┤
-│ 知識管理                                                             │
-│   app.saveKnowledge(name, content, ns)     保存知識                 │
-│   app.getKnowledge(name, ns)               獲取知識                 │
-│   app.updateKnowledge(name, content, ns)   更新知識                 │
-├─────────────────────────────────────────────────────────────────────┤
-│ 文件管理                                                             │
-│   app.addFile(name, data, ns)              添加文件                 │
-│   app.getFile(name, ns)                    獲取文件                 │
-│   app.getFileInfo(name, ns)                獲取文件信息             │
-│   app.deleteFile(name, ns)                 刪除文件                 │
-├─────────────────────────────────────────────────────────────────────┤
-│ 搜索功能                                                             │
-│   app.search(query, mode="fuzzy")          模糊搜索                 │
-│   app.search(query, mode="exact")          精確搜索                 │
-│   app.search(query, mode="regex")          正則搜索                 │
-│   app.search(query, mode="semantic")       語義搜索                 │
-│   app.search(query, mode="monte_carlo")    蒙特卡羅搜索             │
-├─────────────────────────────────────────────────────────────────────┤
-│ 命名空間                                                             │
-│   app.createNamespace(name, desc, parent)  創建命名空間             │
-│   app.listNamespaces()                     列出命名空間             │
-│   app.getNamespace(name)                   獲取命名空間信息         │
-├─────────────────────────────────────────────────────────────────────┤
-│ 節點管理                                                             │
-│   app.listNodes(content_type, ns)          列出節點                 │
-│   app.getNode(name, ns)                    獲取節點詳情             │
-├─────────────────────────────────────────────────────────────────────┤
-│ 導入導出                                                             │
-│   app.fromFolder(path, ns)                 從文件夾導入             │
-│   app.toFolder(path, ns)                   導出到文件夾             │
-│   app.fromFileDict(storage, ns)            從 FileDict 導入         │
-│   app.toFileDict(storage, ns)              導出到 FileDict          │
-├─────────────────────────────────────────────────────────────────────┤
-│ 演化可視化                                                           │
-│   app.initEvolution(mode)                  初始化演化               │
-│   app.evolve(steps, rule, interval)        執行演化                 │
-│   app.getEvolutionState()                  獲取演化狀態             │
-│   app.saveVisualization(prefix, effect)    保存可視化               │
-├─────────────────────────────────────────────────────────────────────┤
-│ 系統管理                                                             │
-│   app.getStats()                           獲取統計                 │
-│   app.getSystemInfo()                      獲取系統信息             │
-│   app.get_debug_log(limit)                 獲取調試日誌             │
-│   app.clear_debug_log()                    清空調試日誌             │
-│   app.close()                              關閉應用                 │
-└─────────────────────────────────────────────────────────────────────┘
-```
+
+#### 代碼管理
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `saveCode(name, code, namespace, metadata)` | 保存代碼 | `DynamicNode` |
+| `getCode(name, namespace)` | 獲取代碼 | `Optional[str]` |
+| `updateCode(name, code, namespace, metadata)` | 更新代碼 | `DynamicNode` |
+| `deleteCode(name, namespace)` | 刪除代碼 | `bool` |
+| `importCode(name, namespace, globals_dict)` | 動態導入 | `module` |
+| `run(name, namespace, entry_point, args, kwargs)` | 執行代碼 | `ExecutionResult` |
+
+#### 數據管理
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `saveData(name, data, namespace, data_type, compression, metadata)` | 保存數據 | `DynamicNode` |
+| `getData(name, namespace)` | 獲取數據 | `Optional[Any]` |
+| `deleteData(name, namespace)` | 刪除數據 | `bool` |
+
+#### 知識管理
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `saveKnowledge(name, content, namespace, tags, attachments, metadata)` | 保存知識 | `DynamicNode` |
+| `getKnowledge(name, namespace)` | 獲取知識 | `Optional[Dict]` |
+| `updateKnowledge(name, content, namespace, tags)` | 更新知識 | `DynamicNode` |
+
+#### 命名空間管理
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `createNamespace(name, description, parent)` | 創建命名空間 | `NamespaceInfo` |
+| `copyNamespace(source, target, include_codes, include_data, include_groups)` | 複製命名空間 | `Dict[str, int]` |
+| `renameNamespace(old_name, new_name)` | 重命名命名空間 | `bool` |
+| `deleteNamespace(name, force)` | 刪除命名空間 | `bool` |
+| `listNamespaces()` | 列出命名空間 | `List[str]` |
+| `getNamespace(name)` | 獲取命名空間信息 | `Optional[NamespaceInfo]` |
+
+#### 資料組管理
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `createDataGroup(name, items, namespace, description, tags, calibrate)` | 創建資料組 | `DataGroup` |
+| `getDataGroup(name, namespace)` | 獲取資料組 | `Optional[DataGroup]` |
+| `updateDataGroup(name, items, namespace, description, tags, calibrate)` | 更新資料組 | `Optional[DataGroup]` |
+| `addToDataGroup(name, content, item_type, metadata, namespace, recalibrate)` | 添加內容 | `Optional[DataGroup]` |
+| `deleteDataGroup(name, namespace)` | 刪除資料組 | `bool` |
+| `listDataGroups(namespace)` | 列出資料組 | `List[str]` |
+
+#### Embedding 校準
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `batchImportWithCalibration(items, namespace, as_data_group, group_name)` | 帶校準的批量導入 | `List[DynamicNode]` 或 `DataGroup` |
+| `calibrateNamespace(namespace)` | 校準命名空間 | `Dict[str, Any]` |
+
+#### 搜索功能
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `search(query, mode, content_type, namespace, similarity_threshold, ...)` | 搜索 | `List[SearchResult]` |
+| `searchRelated(query, content_types, namespace, threshold, limit)` | 關聯搜索 | `List[SearchResult]` |
+
+#### 導入導出
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `fromFolder(folder_path, namespace, recursive, calibrate, file_patterns)` | 從文件夾導入 | `List[DynamicNode]` |
+| `toFolder(folder_path, namespace, include_codes, include_data)` | 導出到文件夾 | `int` |
+| `fromFileDict(source_storage, namespace)` | 從 FileDict 導入 | `List[DynamicNode]` |
+| `toFileDict(target_storage, namespace)` | 導出到 FileDict | `int` |
+
+#### 節點管理
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `listNodes(content_type, namespace)` | 列出節點 | `List[Dict]` |
+| `getNode(name, namespace)` | 獲取節點詳情 | `Optional[Dict]` |
+
+#### 演化與可視化
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `initEvolution(mode, **kwargs)` | 初始化演化 | `None` |
+| `evolve(steps, rule, record_interval)` | 執行演化 | `List[EvolutionFrame]` |
+| `getEvolutionState()` | 獲取演化狀態 | `np.ndarray` |
+| `saveVisualization(prefix, effect)` | 保存可視化 | `Dict[str, str]` |
+
+#### 系統功能
+
+| 方法 | 說明 | 返回值 |
+|------|------|--------|
+| `getStats()` | 獲取統計信息 | `Dict[str, Any]` |
+| `getSystemInfo()` | 獲取系統信息 | `Dict[str, Any]` |
+| `get_debug_log(limit)` | 獲取調試日誌 | `List[Dict]` |
+| `clear_debug_log()` | 清空調試日誌 | `None` |
+| `close()` | 關閉應用 | `None` |
+
+### 12.2 搜索模式
+
+| 模式 | 說明 | 適用場景 |
+|------|------|----------|
+| `exact` | 精確匹配 | 查找特定關鍵詞 |
+| `fuzzy` | 模糊匹配 | 通用搜索（默認） |
+| `regex` | 正則表達式 | 模式匹配 |
+| `semantic` | 語義搜索 | 概念相關搜索 |
+| `monte_carlo` | 蒙特卡羅搜索 | 探索性搜索 |
+| `related` | 關聯搜索 | 查找相關內容 |
+
+### 12.3 內容類型
+
+| 類型 | 說明 |
+|------|------|
+| `all` | 所有類型 |
+| `code` | Python 代碼 |
+| `data` | 結構化數據 |
+| `knowledge` | 知識條目 |
+| `file` | 二進制文件 |
+| `data_group` | 資料組 |
 
 ---
 
 ## 結語
 
-ASMdynamicGradio 提供了一個完整的動態知識與工具體系解決方案，通過統一的 API 實現了：
+ASMdynamicGradio 動態知識與工具體系提供了一個強大而靈活的平台，用於管理代碼、知識和數據。通過合理使用命名空間、Embedding 校準、資料組等功能，可以構建高效的知識管理系統、代碼庫、或任何需要動態內容管理的應用。
 
-1. **代碼的動態管理與執行** - 無需重啟即可更新邏輯
-2. **多格式數據的統一存儲** - 一致的接口處理各種數據類型
-3. **智能的搜索與發現** - 蒙特卡羅搜索帶來驚喜性結果
-4. **靈活的命名空間隔離** - 支持複雜的項目組織結構
-5. **直觀的 Web 介面** - 降低使用門檻
+關鍵要點：
 
-這套系統特別適合：
-- 快速原型開發
-- 機器學習實驗管理
-- 動態配置管理
-- 知識庫構建
-- 插件式架構
-
-希望這份指南能幫助您充分利用 ASMdynamicGradio 的強大功能！
+1. **使用命名空間組織內容** — 保持項目結構清晰
+2. **啟用 Embedding 校準** — 實現跨類型語義搜索
+3. **善用資料組** — 將相關內容組織在一起
+4. **利用蒙特卡羅搜索** — 發現意外的關聯
+5. **定期備份和版本控制** — 使用 copyNamespace 和 toFolder
